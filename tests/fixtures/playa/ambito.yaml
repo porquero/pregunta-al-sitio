@@ -1,0 +1,86 @@
+# Casos de frontera del detector de ámbito.
+# ambito: sitio | general | mixto | neutro
+#   sitio    referencia a Playa (marca, segunda persona, oferta, necesidad o palabra clave del catálogo).
+#   general  fórmula genérica sin referencia a Playa: va a Contacto.
+#   mixto    fórmula genérica con necesidad propia: zona media con dos chips.
+#   neutro   sin señales: decide el puntaje del buscador.
+#   derivar  tema fuera de la lista de preguntas del chat: mensaje de derivación.
+
+casos:
+  # Ejemplos base
+  - { consulta: "¿Qué es una interfaz conversacional sobre datos estructurados?", ambito: general }
+  - { consulta: "¿Qué es un CRM?", ambito: general }
+  - { consulta: "¿Qué es la Ley 21.719?", ambito: general }
+  - { consulta: "¿Es mejor n8n o Make?", ambito: general }
+  - { consulta: "CRM", ambito: sitio }
+  - { consulta: "automatización", ambito: sitio }
+  - { consulta: "Tengo mis pedidos en Excel, ¿se puede automatizar?", ambito: sitio }
+
+  # Fórmula genérica con marca: es sobre Playa
+  - { consulta: "¿Qué es Autofocus?", ambito: sitio }
+  - { consulta: "¿Qué es Wotel?", ambito: sitio }
+  - { consulta: "¿Cómo funciona Autobot?", ambito: sitio }
+  - { consulta: "¿Qué significa Playa SPA?", ambito: sitio }
+  - { consulta: "¿Cómo funciona este asistente?", ambito: sitio }
+  - { consulta: "¿Para qué sirve Wotel?", ambito: sitio }
+  - { consulta: "¿Qué es EspoCRM?", ambito: sitio }
+
+  # Fórmula genérica con segunda persona u oferta: es sobre Playa
+  - { consulta: "¿Cómo funcionan ustedes los sprints?", ambito: sitio }
+  - { consulta: "¿Qué es lo que ofrecen?", ambito: sitio }
+  - { consulta: "¿Qué es un CRM y ustedes lo implementan?", ambito: sitio }
+  - { consulta: "¿Cómo se hace un proyecto con ustedes?", ambito: sitio }
+  - { consulta: "¿Para qué sirve la hora gratuita que dan ustedes?", ambito: sitio }
+
+  # Fórmula genérica con necesidad propia: mixta
+  - { consulta: "¿Qué es la Ley 21.719 y cómo afecta a mi empresa?", ambito: mixto }
+  - { consulta: "¿Cómo funciona un CRM para mi negocio?", ambito: mixto }
+  - { consulta: "¿Qué es n8n? Necesito automatizar facturas", ambito: mixto }
+  - { consulta: "¿Para qué sirve un ERP en mi pyme?", ambito: mixto }
+
+  # Conocimiento general con vocabulario del catálogo
+  - { consulta: "¿Qué significa ERP?", ambito: general }
+  - { consulta: "¿Cómo funciona un certificado SSL?", ambito: general }
+  - { consulta: "Diferencia entre cloud y servidor dedicado", ambito: general }
+  - { consulta: "Ventajas de la transformación digital", ambito: general }
+  - { consulta: "Definición de gobierno TI", ambito: general }
+  - { consulta: "¿Qué son los tokens de un modelo de lenguaje?", ambito: general }
+  - { consulta: "¿Qué es un ERP y cuáles son sus ventajas?", ambito: general }
+  - { consulta: "¿Cómo se configura un firewall?", ambito: general }
+
+  # Conocimiento general ajeno
+  - { consulta: "¿Quién ganó el mundial de 2022?", ambito: general }
+  - { consulta: "¿Cuál es la capital de Australia?", ambito: general }
+  - { consulta: "¿Cómo funciona la fotosíntesis?", ambito: general }
+  - { consulta: "Explícame la teoría de la relatividad", ambito: general }
+
+  # Oferta y necesidad sin fórmula genérica
+  - { consulta: "¿Ustedes hacen sitios web?", ambito: derivar }
+  - { consulta: "¿Trabajan con SAP?", ambito: sitio }
+  - { consulta: "¿Cuánto cuesta?", ambito: sitio }
+  - { consulta: "Necesito una reunión", ambito: sitio }
+  - { consulta: "Mi servidor se cae todas las noches", ambito: sitio }
+  - { consulta: "Ya soy cliente y algo falla", ambito: sitio }
+  - { consulta: "Quiero contratar hosting", ambito: sitio }
+
+  # Consultas cortas
+  - { consulta: "hosting", ambito: sitio }
+  - { consulta: "whatsapp reservas", ambito: sitio }
+  - { consulta: "iso 27001", ambito: sitio }
+  - { consulta: "fotosíntesis", ambito: neutro }
+
+  # Fuera de la lista de preguntas
+  - { consulta: "¿Aceptan alumnos en práctica?", ambito: derivar }
+  - { consulta: "Quiero enviar mi currículum", ambito: derivar }
+  - { consulta: "¿Tienen un blog?", ambito: derivar }
+  - { consulta: "¿Hacen páginas web?", ambito: derivar }
+  - { consulta: "¿Publican tutoriales de Autofocus?", ambito: derivar }
+  - { consulta: "¿Me migran mi sitio web a su hosting?", ambito: sitio }
+  - { consulta: "Se cayó mi sitio web", ambito: sitio }
+  - { consulta: "¿Su hosting sirve para mi página web en WordPress?", ambito: sitio }
+
+  # Saludos y ruido
+  - { consulta: "hola", ambito: neutro }
+  - { consulta: "asdfghjkl", ambito: neutro }
+  - { consulta: "jajaja", ambito: neutro }
+  - { consulta: "Cuéntame un chiste", ambito: neutro }

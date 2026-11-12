@@ -1,0 +1,214 @@
+# Set de evaluación del buscador para el fixture de Playa SPA.
+#
+# Campos:
+#   consulta  texto tal como lo escribiría un visitante. No copia las preguntas de los nodos.
+#   esperado  id de nodo, lista de ids aceptables o "contacto" (derivar al equipo).
+#   tipo      anexo | coloquial | tipeo | multiple | general | necesidad | ajena | fuera | seguimiento
+#             "fuera": temas que no están en la lista de preguntas del chat; esperan Contacto.
+#   frontera  true en las de conocimiento general que comparten vocabulario con nodos.
+#   contexto  id del nodo mostrado justo antes (solo en seguimiento).
+#
+# Las consultas de precio esperan "contacto": el sitio no publica precios.
+# La partición 60/40 la calcula cli/evaluacion/datos.mjs por orden dentro de cada tipo.
+
+consultas:
+  # --- Anexo A, reformuladas ---
+  - { consulta: "¿A qué se dedican?", esperado: [inicio, servicios, nosotros], tipo: anexo }
+  - { consulta: "¿Qué hace exactamente Playa?", esperado: [inicio, servicios, nosotros], tipo: anexo }
+  - { consulta: "¿Con qué tamaño de empresas trabajan?", esperado: [industrias], tipo: anexo }
+  - { consulta: "¿Qué servicios tienen disponibles?", esperado: [servicios], tipo: anexo }
+  - { consulta: "¿Qué rubros han atendido?", esperado: [industrias, casos], tipo: anexo }
+  - { consulta: "¿Trabajan solo en La Serena o en todo Chile?", esperado: [preguntas-frecuentes], tipo: anexo }
+  - { consulta: "¿Atienden clientes en el extranjero?", esperado: [preguntas-frecuentes], tipo: anexo }
+  - { consulta: "¿Qué cosas no hacen ustedes?", esperado: [que-no-hacemos], tipo: anexo }
+  - { consulta: "¿Programan en .NET o C#?", esperado: [que-no-hacemos], tipo: anexo }
+  - { consulta: "¿Quiénes forman el equipo?", esperado: [equipo], tipo: anexo }
+  - { consulta: "¿Cómo parte un proyecto después de contactarlos?", esperado: [metodologia], tipo: anexo }
+  - { consulta: "¿Qué incluye la hora de consultoría sin costo?", esperado: [hora-consultoria], tipo: anexo }
+  - { consulta: "¿Cómo reservo la hora gratis?", esperado: [hora-consultoria], tipo: anexo }
+  - { consulta: "¿Cuánto tiempo toma un proyecto normalmente?", esperado: [cadencia-sprints], tipo: anexo }
+  - { consulta: "¿Cómo organizan los sprints?", esperado: [cadencia-sprints, metodologia], tipo: anexo }
+  - { consulta: "¿Qué tengo que poner yo como cliente?", esperado: [metodologia], tipo: anexo }
+  - { consulta: "¿Con quién hablo mientras dura el proyecto?", esperado: [cadencia-sprints], tipo: anexo }
+  - { consulta: "¿Cuánto cobran por un proyecto?", esperado: contacto, tipo: anexo }
+  - { consulta: "¿Cómo hacen las cotizaciones?", esperado: [contacto, hora-consultoria], tipo: anexo }
+  - { consulta: "¿Hay un monto mínimo para contratarlos?", esperado: contacto, tipo: anexo }
+  - { consulta: "¿Cómo se paga, por hitos?", esperado: contacto, tipo: anexo }
+  - { consulta: "¿La mantención después de entregar tiene costo?", esperado: [contacto, continuidad-operacional], tipo: anexo }
+  - { consulta: "¿Qué tecnologías ocupan?", esperado: [stack-tecnologico], tipo: anexo }
+  - { consulta: "¿Con qué sistemas pueden integrarse?", esperado: [integracion-sistemas, digitalizacion], tipo: anexo }
+  - { consulta: "¿Trabajan con SharePoint?", esperado: [integracion-sistemas, que-no-hacemos], tipo: anexo }
+  - { consulta: "¿Usan Azure?", esperado: [integracion-sistemas, que-no-hacemos], tipo: anexo }
+  - { consulta: "¿En qué servidores quedan mis datos?", esperado: [propiedad-datos], tipo: anexo }
+  - { consulta: "¿El código que desarrollan es mío?", esperado: [propiedad-datos], tipo: anexo }
+  - { consulta: "¿Cómo cuidan la seguridad de la información?", esperado: [seguridad-informacion], tipo: anexo }
+  - { consulta: "¿Siguen la norma ISO 27001?", esperado: [seguridad-informacion, gobierno-ti], tipo: anexo }
+  - { consulta: "¿Tienen alguna certificación?", esperado: [seguridad-informacion], tipo: anexo }
+  - { consulta: "Si termino el contrato, ¿me puedo llevar todo?", esperado: [propiedad-datos], tipo: anexo }
+  - { consulta: "¿Por qué prefieren software libre?", esperado: [stack-tecnologico], tipo: anexo }
+  - { consulta: "¿Hacen interfaces conversacionales para empresas?", esperado: [agente-conversacional], tipo: anexo }
+  - { consulta: "¿Qué modelos de lenguaje utilizan?", esperado: [modelos-ia], tipo: anexo }
+  - { consulta: "¿Mi información viaja a OpenAI?", esperado: [modelos-ia, propiedad-datos], tipo: anexo }
+  - { consulta: "¿Se pueden conectar con WhatsApp?", esperado: [integracion-sistemas, agente-conversacional, automatizacion, crm-sistemas-negocio], tipo: anexo }
+  - { consulta: "¿Este asistente es una inteligencia artificial?", esperado: [asistente-del-sitio], tipo: anexo }
+  - { consulta: "¿Qué es Autofocus y para quién es?", esperado: [autofocus], tipo: anexo }
+  - { consulta: "¿Autofocus tiene demo?", esperado: [autofocus], tipo: anexo }
+  - { consulta: "¿Cuánto cuesta Autofocus?", esperado: [contacto, autofocus], tipo: anexo }
+  - { consulta: "¿Autofocus se integra con portales de autos?", esperado: [autofocus], tipo: anexo }
+  - { consulta: "¿Cómo funciona Autobot dentro de Autofocus?", esperado: [autobot], tipo: anexo }
+  - { consulta: "¿Para quién sirve Wotel?", esperado: [wotel], tipo: anexo }
+  - { consulta: "¿Cómo se contrata Wotel?", esperado: [wotel], tipo: anexo }
+  - { consulta: "¿Qué planes de hosting tienen?", esperado: [hosting-empresarial], tipo: anexo }
+  - { consulta: "¿Cada cuánto respaldan el hosting?", esperado: [hosting-seguridad-respaldo, hosting-empresarial], tipo: anexo }
+  - { consulta: "¿Cuál es el uptime del hosting?", esperado: [hosting-empresarial], tipo: anexo }
+  - { consulta: "¿Me migran el sitio a su hosting?", esperado: [hosting-empresarial], tipo: anexo }
+  - { consulta: "¿Qué cubre la continuidad operacional?", esperado: [continuidad-operacional], tipo: anexo }
+  - { consulta: "Soy cliente y tengo un problema, ¿dónde pido ayuda?", esperado: [soporte-clientes], tipo: anexo }
+  - { consulta: "¿Hacen capacitaciones para los usuarios?", esperado: [continuidad-operacional, metodologia], tipo: anexo }
+  - { consulta: "¿Cómo me comunico con ustedes?", esperado: [contacto], tipo: anexo }
+  - { consulta: "¿Cuánto se demoran en contestar?", esperado: [contacto], tipo: anexo }
+  - { consulta: "¿Tienen clientes que den referencias?", esperado: [casos], tipo: anexo }
+  - { consulta: "¿Trabajan con municipalidades o el Estado?", esperado: [preguntas-frecuentes], tipo: anexo }
+  - { consulta: "¿Postulan a licitaciones públicas?", esperado: [preguntas-frecuentes], tipo: anexo }
+  - { consulta: "¿Buscan programadores?", esperado: contacto, tipo: anexo }
+  - { consulta: "¿Reciben estudiantes en práctica?", esperado: contacto, tipo: anexo }
+  - { consulta: "¿Qué pasa con lo que pongo en el formulario de contacto?", esperado: [privacidad], tipo: anexo }
+  - { consulta: "¿Me pueden ayudar con mi WordPress?", esperado: [contacto, hosting-empresarial], tipo: anexo }
+  - { consulta: "¿Hacen páginas web?", esperado: contacto, tipo: anexo }
+  - { consulta: "¿Cuál es el RUT de la empresa?", esperado: contacto, tipo: anexo }
+  - { consulta: "¿Usan cookies en este sitio?", esperado: [privacidad], tipo: anexo }
+  - { consulta: "¿Qué es EspoCRM?", esperado: [stack-tecnologico, crm-sistemas-negocio], tipo: anexo }
+  - { consulta: "¿Por qué eligen EspoCRM y no otro CRM?", esperado: [stack-tecnologico, crm-sistemas-negocio], tipo: anexo }
+
+  # --- Coloquiales ---
+  - { consulta: "oigan, ¿ustedes hacen bots pa whatsapp?", esperado: [agente-conversacional, automatizacion], tipo: coloquial }
+  - { consulta: "cachai si hacen sistemas pa automotoras", esperado: [autofocus], tipo: coloquial }
+  - { consulta: "algo pa las reservas de unas cabañas", esperado: [wotel], tipo: coloquial }
+  - { consulta: "¿se puede hablar con una persona de verdad?", esperado: [asistente-del-sitio, contacto], tipo: coloquial }
+  - { consulta: "¿la primera junta me la cobran?", esperado: [hora-consultoria], tipo: coloquial }
+  - { consulta: "¿y si se me cae la página un domingo?", esperado: [soporte-clientes, hosting-empresarial], tipo: coloquial }
+  - { consulta: "me tinca n8n, ¿lo ocupan?", esperado: [automatizacion, stack-tecnologico], tipo: coloquial }
+  - { consulta: "¿ustedes ven lo de los servidores también?", esperado: [infraestructura-cloud, servicios], tipo: coloquial }
+  - { consulta: "¿quién está a cargo de la empresa?", esperado: [equipo], tipo: coloquial }
+  - { consulta: "¿hacen pega para el gobierno?", esperado: [preguntas-frecuentes], tipo: coloquial }
+  - { consulta: "¿son buenos pa la seguridad o no?", esperado: [seguridad-informacion], tipo: coloquial }
+  - { consulta: "¿dónde quedan ustedes?", esperado: [contacto, inicio, nosotros], tipo: coloquial }
+  - { consulta: "¿tienen algo tipo blog o videos?", esperado: contacto, tipo: coloquial }
+  - { consulta: "¿qué onda con mis datos si me voy?", esperado: [propiedad-datos], tipo: coloquial }
+  - { consulta: "¿el bot de autofocus contesta de noche?", esperado: [autobot], tipo: coloquial }
+
+  # --- Con errores de tipeo ---
+  - { consulta: "q servicos ofresen", esperado: [servicios], tipo: tipeo }
+  - { consulta: "tienen hostin con respaldos", esperado: [hosting-empresarial, hosting-seguridad-respaldo], tipo: tipeo }
+  - { consulta: "autofocs crm automotris", esperado: [autofocus], tipo: tipeo }
+  - { consulta: "integrasion con sap", esperado: [integracion-sistemas, digitalizacion], tipo: tipeo }
+  - { consulta: "metodolojia de trabajo", esperado: [metodologia], tipo: tipeo }
+  - { consulta: "wotell para hostales", esperado: [wotel], tipo: tipeo }
+  - { consulta: "casos de exsito", esperado: [casos], tipo: tipeo }
+  - { consulta: "trabajan con amazon web servises", esperado: [infraestructura-cloud, stack-tecnologico], tipo: tipeo }
+  - { consulta: "como los contacto x wsp", esperado: [contacto], tipo: tipeo }
+  - { consulta: "automatisacion de prosesos", esperado: [digitalizacion, automatizacion], tipo: tipeo }
+  - { consulta: "cumplen la ley 21719 de protecion de datos", esperado: [seguridad-informacion, gobierno-ti, privacidad], tipo: tipeo }
+  - { consulta: "chatbot whatsap para inventario", esperado: [agente-conversacional], tipo: tipeo }
+  - { consulta: "capasitan al equipo", esperado: [continuidad-operacional, metodologia], tipo: tipeo }
+  - { consulta: "soporte tecnico urjente", esperado: [soporte-clientes], tipo: tipeo }
+  - { consulta: "politica de privasidad", esperado: [privacidad], tipo: tipeo }
+
+  # --- Varias intenciones (cualquiera de los esperados es correcto) ---
+  - { consulta: "¿Hacen CRM y también hosting?", esperado: [servicios, crm-sistemas-negocio, hosting-empresarial], tipo: multiple }
+  - { consulta: "¿Qué es Wotel y cuánto cuesta?", esperado: [wotel, contacto], tipo: multiple }
+  - { consulta: "Quiero automatizar procesos y agendar una reunión", esperado: [digitalizacion, automatizacion, hora-consultoria, contacto], tipo: multiple }
+  - { consulta: "¿Usan IA y mis datos quedan protegidos?", esperado: [modelos-ia, seguridad-informacion, propiedad-datos], tipo: multiple }
+  - { consulta: "¿Trabajan con AWS y administran servidores Linux?", esperado: [infraestructura-cloud], tipo: multiple }
+  - { consulta: "¿Cómo trabajan y cuánto demora un proyecto?", esperado: [metodologia, cadencia-sprints], tipo: multiple }
+  - { consulta: "¿Tienen casos en salud y retail?", esperado: [industrias, casos], tipo: multiple }
+  - { consulta: "¿Dan soporte y capacitación después de entregar?", esperado: [continuidad-operacional], tipo: multiple }
+  - { consulta: "¿El hosting tiene SSL y firewall?", esperado: [hosting-empresarial, hosting-seguridad-respaldo], tipo: multiple }
+  - { consulta: "¿Autofocus tiene bot para Instagram y WhatsApp?", esperado: [autobot], tipo: multiple }
+
+  # --- Conocimiento general: van a Contacto ---
+  - { consulta: "¿Qué es un CRM?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Qué es la Ley 21.719?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Es mejor n8n o Make?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Qué es una interfaz conversacional sobre datos estructurados?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Qué significa ERP?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Cómo funciona un ERP?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Para qué sirve n8n?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Qué es el hosting compartido?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Cómo funciona un certificado SSL?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "Diferencia entre cloud y servidor dedicado", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Qué es la ISO 27001?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Cómo se hace una API REST?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Qué es Scrum?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "Ventajas de la transformación digital", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Qué es un agente de IA?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Cómo funciona ChatGPT?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "Definición de gobierno TI", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Cómo se usa cPanel?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Qué es un firewall?", esperado: contacto, tipo: general, frontera: true }
+  - { consulta: "¿Quién ganó el mundial de 2022?", esperado: contacto, tipo: general }
+  - { consulta: "¿Cuál es la capital de Australia?", esperado: contacto, tipo: general }
+  - { consulta: "¿Cómo hago una torta de chocolate?", esperado: contacto, tipo: general }
+  - { consulta: "¿Qué significa la palabra resiliencia?", esperado: contacto, tipo: general }
+  - { consulta: "¿Quién escribió Cien años de soledad?", esperado: contacto, tipo: general }
+  - { consulta: "¿Cómo funciona la fotosíntesis?", esperado: contacto, tipo: general }
+  - { consulta: "¿Qué es el dólar observado?", esperado: contacto, tipo: general }
+  - { consulta: "¿Cómo aprendo inglés rápido?", esperado: contacto, tipo: general }
+  - { consulta: "Explícame la teoría de la relatividad", esperado: contacto, tipo: general }
+  - { consulta: "¿Para qué sirve el magnesio?", esperado: contacto, tipo: general }
+  - { consulta: "¿Cuál es el mejor celular de este año?", esperado: contacto, tipo: general }
+  - { consulta: "¿Qué es un agujero negro?", esperado: contacto, tipo: general }
+  - { consulta: "¿Cómo se calcula el IVA?", esperado: contacto, tipo: general }
+
+  # --- Necesidad propia: nodo pertinente más Contacto ---
+  - { consulta: "Tengo mis pedidos en Excel, ¿se puede automatizar?", esperado: [digitalizacion, automatizacion], tipo: necesidad }
+  - { consulta: "Mi empresa lleva los clientes en planillas y se nos pierden ventas", esperado: [crm-sistemas-negocio, digitalizacion], tipo: necesidad }
+  - { consulta: "Tengo una automotora y quiero ordenar los leads", esperado: [autofocus], tipo: necesidad }
+  - { consulta: "Tengo un hostal y las reservas me llegan por WhatsApp", esperado: [wotel], tipo: necesidad }
+  - { consulta: "Necesito conectar mi ERP con la tienda online", esperado: [integracion-sistemas, digitalizacion], tipo: necesidad }
+  - { consulta: "Quiero un chatbot que responda sobre mi stock", esperado: [agente-conversacional], tipo: necesidad }
+  - { consulta: "Necesito cambiar mi sitio a otro hosting", esperado: [hosting-empresarial], tipo: necesidad }
+  - { consulta: "Nuestro servidor se cae seguido", esperado: [infraestructura-cloud, soporte-clientes], tipo: necesidad }
+  - { consulta: "Queremos cumplir la nueva ley de datos personales", esperado: [gobierno-ti, seguridad-informacion], tipo: necesidad }
+  - { consulta: "Mi equipo pierde horas copiando datos entre sistemas", esperado: [digitalizacion, integracion-sistemas], tipo: necesidad }
+  - { consulta: "Necesito un sistema a medida para mi negocio", esperado: [desarrollo-software], tipo: necesidad }
+  - { consulta: "Queremos un diagnóstico de la tecnología de la empresa", esperado: [gobierno-ti, hora-consultoria], tipo: necesidad }
+  - { consulta: "Necesito respaldar la información de mi empresa", esperado: [hosting-seguridad-respaldo, hosting-empresarial, infraestructura-cloud], tipo: necesidad }
+  - { consulta: "Tenemos EspoCRM y queremos agregarle funciones", esperado: [crm-sistemas-negocio], tipo: necesidad }
+  - { consulta: "Quiero que mis vendedores reciban los leads de Instagram", esperado: [autobot, crm-sistemas-negocio], tipo: necesidad }
+  - { consulta: "Necesito aprobar facturas sin andar mandando correos", esperado: [automatizacion, digitalizacion], tipo: necesidad }
+  - { consulta: "Mi pyme crece y no sé por dónde partir con la tecnología", esperado: [hora-consultoria, gobierno-ti, servicios], tipo: necesidad }
+
+  # --- Ajenas o sin sentido ---
+  - { consulta: "hola", esperado: [inicio], tipo: ajena }
+  - { consulta: "Buenas tardes", esperado: [inicio], tipo: ajena }
+  - { consulta: "Buenos días, ¿cómo estás?", esperado: [inicio], tipo: ajena }
+  - { consulta: "gracias", esperado: contacto, tipo: ajena }
+  - { consulta: "asdfghjkl", esperado: contacto, tipo: ajena }
+  - { consulta: "jajaja", esperado: contacto, tipo: ajena }
+  - { consulta: "Gana dinero rápido con criptomonedas, haz clic aquí", esperado: contacto, tipo: ajena }
+  - { consulta: "Vendo seguidores para Instagram baratos", esperado: contacto, tipo: ajena }
+  - { consulta: "SEO guest post offer for your website", esperado: contacto, tipo: ajena }
+  - { consulta: "123456", esperado: contacto, tipo: ajena }
+  - { consulta: "¿Me recomiendas una película?", esperado: contacto, tipo: ajena }
+  - { consulta: "Cuéntame un chiste", esperado: contacto, tipo: ajena }
+
+  # --- Fuera de la lista de preguntas del chat: mensaje de derivación ---
+  - { consulta: "Quiero enviar mi currículum", esperado: contacto, tipo: fuera }
+  - { consulta: "¿Tienen ofertas de empleo?", esperado: contacto, tipo: fuera }
+  - { consulta: "¿Hacen landing pages para campañas?", esperado: contacto, tipo: fuera }
+  - { consulta: "¿Dónde leo sus artículos?", esperado: contacto, tipo: fuera }
+  - { consulta: "¿Me diseñan un sitio web para mi tienda?", esperado: contacto, tipo: fuera }
+  - { consulta: "¿Publican tutoriales de EspoCRM?", esperado: contacto, tipo: fuera }
+  - { consulta: "¿Puedo hacer mi práctica profesional con ustedes?", esperado: contacto, tipo: fuera }
+  - { consulta: "¿Me pasan el RUT para facturar?", esperado: contacto, tipo: fuera }
+
+  # --- Seguimiento con contexto de conversación ---
+  - { consulta: "¿y cómo lo contrato?", esperado: [wotel], tipo: seguimiento, contexto: wotel }
+  - { consulta: "¿tiene demo?", esperado: [autofocus], tipo: seguimiento, contexto: autofocus }
+  - { consulta: "¿y los respaldos?", esperado: [hosting-seguridad-respaldo, hosting-empresarial], tipo: seguimiento, contexto: hosting-empresarial }
+  - { consulta: "¿cuánto dura cada etapa?", esperado: [cadencia-sprints, metodologia], tipo: seguimiento, contexto: metodologia }
+  - { consulta: "¿qué modelo usa?", esperado: [modelos-ia, agente-conversacional], tipo: seguimiento, contexto: agente-conversacional }
+  - { consulta: "¿y tienen casos?", esperado: [casos], tipo: seguimiento, contexto: crm-sistemas-negocio }
+  - { consulta: "¿y funciona con Instagram?", esperado: [autobot], tipo: seguimiento, contexto: autofocus }
+  - { consulta: "¿cómo lo contrato?", esperado: [hosting-empresarial, contacto], tipo: seguimiento, contexto: hosting-empresarial }

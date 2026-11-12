@@ -1,0 +1,91 @@
+// Evaluación del resolvedor de un sitio con la configuración de su índice.
+//   node cli/evaluacion/evaluar.mjs [--indice indice.json] [--preguntas preguntas.yaml] [--json salida.json]
+// Sin --indice usa el fixture de Playa.
+//
+// Informa las métricas en la partición de validación (40 %, no se usa para calibrar) y en la de ajuste,
+// las métricas por tipo de consulta, los errores, la fuga sin detector de ámbito, y el tamaño y los
+// tiempos de carga y consulta.
+import { writeFileSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
+import { performance } from 'node:perf_hooks';
+import { pathToFileURL } from 'node:url';
+import { crearResolver, zonaDe } from '../../src/motor/resolver.js';
+import { cargarIndice, cargarPreguntas, particion, esperaContacto, argumentos } from './datos.mjs';
+import { metricas, cumple, filasDe, resumen } from './metricas.mjs';
+
+const FACTOR_MOVIL = 4; // estimación: CPU de un teléfono de gama media frente a un PC de desarrollo
+
+const esError = (f) =>
+  esperaContacto(f.c) ? !(f.d.zona === 'contacto' || f.d.lista[0] === 'contacto') : !f.c.esperado.includes(f.d.lista[0]);
+
+function medir(datos, consultas) {
+  const json = JSON.stringify(datos);
+  const repeticiones = 20;
+  let t0 = performance.now();
+  let r;
+  for (let i = 0; i < repeticiones; i++) r = crearResolver(JSON.parse(json));
+  const carga = (performance.now() - t0) / repeticiones;
+  t0 = performance.now();
+  const vueltas = 5;
+  for (let v = 0; v < vueltas; v++) for (const c of consultas) r.resolver(c.consulta);
+  const consulta = (performance.now() - t0) / (vueltas * consultas.length);
+  return { carga, consulta, indice: Buffer.byteLength(json), indiceGz: gzipSync(json).length };
+}
+
+export function evaluar(datos, consultas, { medicion = true } = {}) {
+  const r = crearResolver(datos);
+  const { ajuste, validacion } = particion(consultas);
+  const filasV = filasDe(r, validacion);
+  const filasA = filasDe(r, ajuste);
+  // Fuga si el detector de ámbito no existiera: solo decide el puntaje.
+  const generales = filasV.filter((f) => f.c.tipo === 'general');
+  const fugaSinDetector = generales.filter((f) => {
+    const zona = zonaDe('neutro', f.res.senales, r.config.zonas);
+    return zona === 'alta' || zona === 'media';
+  }).length / (generales.length || 1);
+  const detalle = (f) => ({
+    consulta: f.c.consulta,
+    tipo: f.c.tipo,
+    esperado: f.c.esperado,
+    zona: f.d.zona,
+    obtenido: f.d.lista.slice(0, 3),
+    top: f.res.candidatos.map((x) => `${x.id} ${x.puntaje.toFixed(2)}`),
+    senales: f.res.senales,
+  });
+  return {
+    version: datos.version,
+    config: r.config,
+    escala: r.escala,
+    tamanos: { ajuste: ajuste.length, validacion: validacion.length },
+    validacion: metricas(filasV),
+    ajuste: metricas(filasA),
+    validacionPorTipo: Object.fromEntries(
+      [...new Set(validacion.map((c) => c.tipo))].map((t) => [t, metricas(filasV.filter((f) => f.c.tipo === t))]),
+    ),
+    errores: filasV.filter(esError).map(detalle),
+    erroresAjuste: filasA.filter(esError).map(detalle),
+    fugaSinDetector,
+    medicion: medicion ? medir(datos, consultas) : null,
+  };
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const args = argumentos();
+  const datos = cargarIndice(args.indice);
+  const s = evaluar(datos, cargarPreguntas(args.preguntas));
+  const p = (x) => `${(x * 100).toFixed(1)}%`;
+  console.log(`Índice ${s.version} · ${datos.nodos.length} nodos · ajuste ${s.tamanos.ajuste} · validación ${s.tamanos.validacion}\n`);
+  console.log(`Validación: ${resumen(s.validacion)}`, cumple(s.validacion) ? '· cumple' : '· NO cumple');
+  console.log(`Ajuste:     ${resumen(s.ajuste)}`);
+  console.log('\nValidación por tipo:');
+  for (const [t, m] of Object.entries(s.validacionPorTipo)) console.log(`  ${t.padEnd(12)} n ${String(m.n).padStart(3)} · acierto ${p(m.aciertoTotal)} · top-3 ${p(m.top3)}`);
+  console.log(`\nFuga sin detector de ámbito (solo puntaje): ${p(s.fugaSinDetector)}`);
+  console.log(`\nErrores en validación (${s.errores.length}):`);
+  for (const e of s.errores) console.log(`  [${e.tipo}] "${e.consulta}" → ${e.zona} ${e.obtenido.join(', ')} (esperado ${e.esperado.join(' | ')})`);
+  const t = s.medicion;
+  console.log(
+    `\nÍndice ${(t.indice / 1024).toFixed(1)} KB (${(t.indiceGz / 1024).toFixed(1)} KB gzip) · carga ${t.carga.toFixed(1)} ms` +
+      ` · consulta ${t.consulta.toFixed(3)} ms · móvil est. ${(t.carga * FACTOR_MOVIL).toFixed(0)} ms / ${(t.consulta * FACTOR_MOVIL).toFixed(2)} ms`,
+  );
+  if (args.json) writeFileSync(args.json, JSON.stringify(s, null, 2));
+}

@@ -1,0 +1,36 @@
+{
+  "name": "pregunta-al-sitio",
+  "version": "0.1.0",
+  "description": "Chat flotante que responde con el contenido de tu sitio: buscador BM25F en el navegador, sin LLM ni backend al responder.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    "./motor": "./src/motor/resolver.js",
+    "./motor/*": "./src/motor/*.js"
+  },
+  "files": [
+    "src",
+    "cli",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test tests/",
+    "evaluar": "node cli/evaluacion/evaluar.mjs",
+    "calibrar": "node cli/evaluacion/calibrar.mjs"
+  },
+  "keywords": [
+    "chat",
+    "faq",
+    "buscador",
+    "bm25",
+    "espanol",
+    "widget"
+  ],
+  "devDependencies": {
+    "yaml": "2.9.1"
+  }
+}
