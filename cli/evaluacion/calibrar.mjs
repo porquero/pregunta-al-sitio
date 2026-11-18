@@ -1,17 +1,12 @@
-// Calibración del resolvedor para un sitio.
-//   node cli/evaluacion/calibrar.mjs [--indice indice.json] [--preguntas preguntas.yaml] [--escribir]
-// Sin --indice usa el fixture de Playa. Con --escribir guarda el resultado en la clave "config" del índice.
-//
+// Calibración del resolvedor para un sitio (pregunta-al-sitio calibrar).
 // 1. Parámetros del motor: grilla sobre la partición de ajuste, por ranking (top-3 + MRR).
-// 2. Umbrales de zona: grilla sobre ajuste; primero los que cumplen los objetivos de calidad,
-//    luego el mayor acierto total. La validación solo se informa.
+// 2. Umbrales de zona: grilla sobre ajuste; primero los que cumplen OBJETIVO_CALIBRACION (precisión
+//    alta 99 %), luego el mayor acierto total. La validación solo se informa.
 // Repetir después de cambiar nodos, diccionario o reglas de ámbito.
-import { writeFileSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
 import { crearBM25F, crearResolver, zonaDe } from '../../src/motor/resolver.js';
 import { crearTerminos } from '../../src/motor/normalizar.js';
-import { cargarIndice, cargarPreguntas, particion, esperaContacto, argumentos, FIXTURE_PLAYA } from './datos.mjs';
-import { metricas, cumple, resumen, OBJETIVO } from './metricas.mjs';
+import { particion, esperaContacto } from './datos.mjs';
+import { metricas, OBJETIVO_CALIBRACION } from './metricas.mjs';
 
 export const GRILLA_MOTOR = [];
 for (const k1 of [0.9, 1.2, 1.6])
@@ -28,7 +23,7 @@ function compararClaves(a, b) {
 }
 
 /** Calibra motor y zonas con la partición de ajuste. Devuelve { config, ajuste, validacion, escala }. */
-export function calibrar(datos, consultas, objetivo = OBJETIVO) {
+export function calibrar(datos, consultas, objetivo = OBJETIVO_CALIBRACION) {
   const { ajuste, validacion } = particion(consultas);
   const terminos = crearTerminos(datos.diccionario ?? {});
 
@@ -82,20 +77,4 @@ export function calibrar(datos, consultas, objetivo = OBJETIVO) {
     ajuste: { n: ajuste.length, metricas: metricas(aFilas(corridasAjuste, zonas)) },
     validacion: { n: validacion.length, metricas: metricas(aFilas(corrida(validacion), zonas)) },
   };
-}
-
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const args = argumentos();
-  const rutaIndice = args.indice ?? `${FIXTURE_PLAYA}indice.json`;
-  const datos = cargarIndice(rutaIndice);
-  const r = calibrar(datos, cargarPreguntas(args.preguntas));
-  console.log('motor', JSON.stringify(r.config.motor));
-  console.log('zonas', JSON.stringify(r.config.zonas));
-  console.log(`Escala del puntaje: ${r.escala.toFixed(2)}`);
-  console.log(`Ajuste (${r.ajuste.n}): ${resumen(r.ajuste.metricas)}`);
-  console.log(`Validación (${r.validacion.n}): ${resumen(r.validacion.metricas)}`, cumple(r.validacion.metricas) ? '· cumple' : '· NO cumple');
-  if (process.argv.includes('--escribir')) {
-    writeFileSync(rutaIndice, `${JSON.stringify({ ...datos, config: r.config }, null, 2)}\n`);
-    console.log(`config escrita en ${rutaIndice}`);
-  }
 }

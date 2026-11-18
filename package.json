@@ -7,6 +7,9 @@
   "engines": {
     "node": ">=20"
   },
+  "bin": {
+    "pregunta-al-sitio": "cli/bin.mjs"
+  },
   "exports": {
     "./motor": "./src/motor/resolver.js",
     "./motor/*": "./src/motor/*.js"
@@ -19,8 +22,10 @@
   ],
   "scripts": {
     "test": "node --test tests/",
-    "evaluar": "node cli/evaluacion/evaluar.mjs",
-    "calibrar": "node cli/evaluacion/calibrar.mjs"
+    "build": "node cli/bin.mjs build",
+    "validar": "node cli/bin.mjs validar",
+    "evaluar": "node cli/bin.mjs evaluar",
+    "calibrar": "node cli/bin.mjs calibrar"
   },
   "keywords": [
     "chat",
@@ -30,7 +35,7 @@
     "espanol",
     "widget"
   ],
-  "devDependencies": {
+  "dependencies": {
     "yaml": "2.9.1"
   }
 }

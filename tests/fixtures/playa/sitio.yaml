@@ -1,0 +1,385 @@
+# Sitio de referencia: Playa SPA. Lo lee `pregunta-al-sitio build`.
+# config lo escribe `pregunta-al-sitio calibrar --escribir`.
+nombre: Playa SPA
+config:
+  motor:
+    k1: 1.6
+    pesos:
+      titulo: 2
+      preguntas: 1.5
+      keywords: 3
+      sinonimos: 2
+    similitudMin: 0.5
+    frase: 0.5
+  zonas:
+    Ta: 0.5
+    Ca: 0.5
+    Ma: 0
+    Tm: 0.3
+    Cm: 0.2
+  opcionesMedia: 2
+validar:
+  respuesta:
+    palabras_min: 40
+    palabras_max: 60
+    nombrar: Playa SPA
+    nombrar_salvo:
+      - saludo
+  preguntas:
+    min: 6
+    max: 12
+  tipos:
+    - saludo
+    - indice
+    - servicio
+    - producto
+    - caso
+    - proceso
+    - faq
+    - quienes
+    - ficha
+    - contacto
+    - legal
+  variantes:
+    - servicio
+    - producto
+    - caso
+    - proceso
+    - cifras
+    - llamado
+    - cta
+    - contacto
+    - ficha
+  aristas:
+    tipos:
+      - prueba
+      - proceso
+      - profundiza
+      - cta
+    peso_min: 0.3
+    peso_max: 1
+  faq_max: 6
+  pendiente: "[REDACTAR"
+  reglas:
+    - patron: ISO\s*27001[^.]{0,80}certificad|certificad[^.]{0,80}ISO\s*27001
+      nivel: error
+      mensaje: 'ISO 27001 junto a "certificado": se presenta solo como marco de referencia'
+    - patron: \bno es\b[^.;]{1,80}\b(sino|es)\b
+      campo: respuesta_y_cuerpo
+      nivel: aviso
+      mensaje: posible contraste "no es X, es Y"
+    - patron: huevohost
+      nivel: error
+      mensaje: menciona Huevohost
+    - patron: \b\d+(?:[.,]\d+)?\s*UF\b|\$\s?\d|\bCLP\b
+      sensible: true
+      nivel: error
+      mensaje: "publica un precio o monto: el sitio no muestra precios"
+diccionario:
+  wsp: whatsapp
+  wpp: whatsapp
+  insta: instagram
+  ig: instagram
+  fono: telefono
+  celular: telefono
+  llamar: telefono
+  precio: cotizacion
+  precios: cotizacion
+  costo: cotizacion
+  costos: cotizacion
+  valor: cotizacion
+  valores: cotizacion
+  tarifa: cotizacion
+  tarifas: cotizacion
+  presupuesto: cotizacion
+  cotizar: cotizacion
+  cuanto cuesta: cotizacion
+  cuanto sale: cotizacion
+  cuanto cobran: cotizacion
+  cuanto vale: cotizacion
+  cuanto me sale: cotizacion
+  cuanto me cobran: cotizacion
+  cobran: cotizacion
+  cobrar: cotizacion
+  excel: planilla
+  excels: planilla
+  planillas: planilla
+  spreadsheet: planilla
+  google sheets: planilla
+  bot: chatbot
+  bots: chatbot
+  chatbots: chatbot
+  chat bot: chatbot
+  robot: chatbot
+  ai: ia
+  i a: ia
+  chatgpt: gpt
+  chat gpt: gpt
+  sitio web: sitioweb
+  pagina web: sitioweb
+  paginas web: sitioweb
+  pagina de internet: sitioweb
+  web: sitioweb
+  wordpress: sitioweb
+  wp: sitioweb
+  alojamiento web: hosting
+  hospedaje: hosting
+  hospedaje web: hosting
+  backup: respaldo
+  backups: respaldo
+  copia de seguridad: respaldo
+  copias de seguridad: respaldo
+  respaldar: respaldo
+  nube: cloud
+  en la nube: cloud
+  amazon: aws
+  amazon web services: aws
+  mantenimiento: mantencion
+  mantener: mantencion
+  auto focus: autofocus
+  auto foco: autofocus
+  autofocos: autofocus
+  vehiculo: auto
+  vehiculos: auto
+  autos: auto
+  carro: auto
+  carros: auto
+  automovil: auto
+  automoviles: auto
+  concesionaria: automotora
+  concesionario: automotora
+  automotriz: automotora
+  automotoras: automotora
+  hotel: alojamiento
+  hoteles: alojamiento
+  hostal: alojamiento
+  hostales: alojamiento
+  cabana: alojamiento
+  cabanas: alojamiento
+  hospederia: alojamiento
+  apart hotel: alojamiento
+  alojamientos: alojamiento
+  colegio: educacion
+  colegios: educacion
+  universidad: educacion
+  universidades: educacion
+  liceo: educacion
+  clinica: salud
+  clinicas: salud
+  hospital: salud
+  farmacia: farmaceutico
+  farmaceutica: farmaceutico
+  constructora: ingenieria
+  constructoras: ingenieria
+  tienda: retail
+  tiendas: retail
+  comercio: retail
+  humano: persona
+  humana: persona
+  personas: persona
+  alguien: persona
+  ejecutivo: persona
+  reunion: reunion
+  junta: reunion
+  videollamada: reunion
+  video llamada: reunion
+  meet: reunion
+  zoom: reunion
+  pyme: pyme
+  pymes: pyme
+  emprendimiento: pyme
+  empresa chica: pyme
+  empresa pequena: pyme
+  demora: plazo
+  demoran: plazo
+  tarda: plazo
+  tardan: plazo
+  duracion: plazo
+  dura: plazo
+  fallo: falla
+  fallas: falla
+  caido: falla
+  cayo: falla
+  caida: falla
+  no funciona: falla
+  no anda: falla
+ambito:
+  marcas:
+    - playa
+    - playa spa
+    - playaspa
+    - autofocus
+    - wotel
+    - huevohost
+    - autobot
+    - este asistente
+    - este chat
+    - este bot
+    - este sitio
+    - esta pagina
+    - su asistente
+    - tu asistente
+    - el asistente
+    - su chat
+    - tu chat
+    - su bot
+    - tu bot
+    - espocrm
+  derivar:
+    - practica
+    - practicas
+    - en practica
+    - practica profesional
+    - alumno en practica
+    - alumnos en practica
+    - estan contratando
+    - contratan personal
+    - buscan personal
+    - buscan programadores
+    - buscan desarrolladores
+    - busco trabajo
+    - busco empleo
+    - empleo
+    - oferta laboral
+    - ofertas laborales
+    - curriculum
+    - cv
+    - postular
+    - blog
+    - articulos
+    - tutoriales
+    - videotutoriales
+    - noticias
+    - pagina web
+    - paginas web
+    - sitio web
+    - sitios web
+    - diseno web
+    - landing
+    - landing page
+  derivar_salvo:
+    - hosting
+    - migrar
+    - migran
+    - migracion
+    - alojar
+    - alojamiento
+    - dominio
+    - ssl
+    - respaldo
+    - respaldos
+    - cayo
+    - cae
+    - caido
+    - soporte
+    - wordpress
+  oferta:
+    - ustedes
+    - usted
+    - les
+    - los contacto
+    - ofrecen
+    - tienen
+    - hacen
+    - trabajan
+    - pueden
+    - cobran
+    - cotizan
+    - venden
+    - atienden
+    - usan
+    - ocupan
+    - implementan
+    - integran
+    - administran
+    - desarrollan
+    - programan
+    - capacitan
+    - entrenan
+    - entregan
+    - respaldan
+    - migran
+    - automatizan
+    - protegen
+    - cuidan
+    - guardan
+    - manejan
+    - conectan
+    - publican
+    - prefieren
+    - aceptan
+    - buscan
+    - subcontratan
+    - responden
+  necesidad:
+    - mi empresa
+    - mi negocio
+    - mi pyme
+    - mi sitio
+    - mi pagina
+    - mi servidor
+    - mi sistema
+    - mi crm
+    - mis datos
+    - mis clientes
+    - nuestro
+    - nuestra
+    - nuestros
+    - nuestras
+    - necesito
+    - necesitamos
+    - quiero
+    - queremos
+    - tengo
+    - tenemos
+    - contratar
+    - contrato
+    - precio
+    - precios
+    - cuanto cuesta
+    - cuanto sale
+    - cuanto cobran
+    - cotizacion
+    - cotizar
+    - presupuesto
+    - reunion
+    - soporte
+    - plazo
+    - me sirve
+    - puedo
+    - ayuda
+    - ayudar
+    - soy cliente
+  genericas:
+    - que es
+    - que son
+    - que significa
+    - que quiere decir
+    - como funciona
+    - como funcionan
+    - como se hace
+    - como se usa
+    - como hago
+    - como aprendo
+    - para que sirve
+    - para que sirven
+    - diferencia entre
+    - diferencias entre
+    - ventajas de
+    - desventajas de
+    - definicion de
+    - explicame
+    - es mejor
+    - cual es mejor
+    - cual es el mejor
+    - quien escribio
+    - quien gano
+    - cual es la capital
+    - que tipos de
+    - ejemplos de
+    - como se configura
+    - como se instala
+    - como instalo
+    - como se calcula
+    - quien invento
+  palabras_clave_max: 3

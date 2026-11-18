@@ -34,6 +34,13 @@ export function metricas(filas) {
 /** Objetivos de calidad de un sitio. */
 export const OBJETIVO = { top3: 0.9, precisionAlta: 0.95, fuga: 0.03, falsoRechazo: 0.05 };
 
+/**
+ * Objetivo al elegir umbrales en la calibración: más exigente en precisión alta que el mínimo, para que
+ * la validación quede con holgura. Una consulta dudosa pasa a "¿Te refieres a A o B?" en vez de
+ * responderse mal.
+ */
+export const OBJETIVO_CALIBRACION = { ...OBJETIVO, precisionAlta: 0.99 };
+
 export const cumple = (m, o = OBJETIVO) =>
   m.top3 >= o.top3 && m.precisionAlta >= o.precisionAlta && m.fuga <= o.fuga && m.falsoRechazo <= o.falsoRechazo;
 

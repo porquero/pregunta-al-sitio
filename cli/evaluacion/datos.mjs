@@ -19,7 +19,7 @@ export function cargarPreguntas(ruta = `${FIXTURE_PLAYA}preguntas.yaml`) {
   return datos.consultas.map((c, i) => ({ ...c, n: i, esperado: comoLista(c.esperado) }));
 }
 
-export function cargarCasosAmbito(ruta = `${FIXTURE_PLAYA}ambito.yaml`) {
+export function cargarCasosAmbito(ruta = `${FIXTURE_PLAYA}casos-ambito.yaml`) {
   return parse(readFileSync(ruta, 'utf8')).casos;
 }
 
@@ -41,11 +41,3 @@ export function particion(consultas) {
 /** Una consulta espera contacto si su única respuesta aceptable es contacto. */
 export const esperaContacto = (c) => c.esperado.length === 1 && c.esperado[0] === 'contacto';
 
-/** Lee --indice y --preguntas de la línea de comandos; por defecto, el fixture de Playa. */
-export function argumentos(argv = process.argv) {
-  const valor = (nombre) => {
-    const i = argv.indexOf(nombre);
-    return i > 0 ? argv[i + 1] : undefined;
-  };
-  return { indice: valor('--indice'), preguntas: valor('--preguntas'), json: valor('--json'), repeticiones: Number(valor('--repeticiones') ?? 0) };
-}
