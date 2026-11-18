@@ -4,7 +4,55 @@ Chat flotante que responde preguntas con el contenido de tu sitio. El buscador (
 a errores de tipeo, sinónimos y detector de ámbito) corre en el navegador: no usa un LLM ni un backend
 al responder. v1 solo en español.
 
-> Estado: fases 1 (motor) y 2 (CLI). El widget y la guía de contenido vienen después.
+> Estado: fases 1 (motor), 2 (CLI) y 3 (widget). La guía de contenido y la publicación vienen después.
+
+## Instalación en un sitio
+
+1. Arma el índice con el CLI (más abajo) y publícalo junto al sitio, por ejemplo en `/indice.json`.
+2. Agrega el script:
+
+```html
+<script src="pregunta-al-sitio.js" data-indice="/indice.json"
+        data-contacto-enlace="https://wa.me/56900000000?text={mensaje}" defer></script>
+```
+
+Aparece un botón flotante que abre el chat. El índice se descarga recién al abrirlo. La conversación
+queda en `localStorage` del visitante y se restaura al volver.
+
+Opciones como atributos `data-*` del script, o en `window.PreguntaAlSitioConfig` antes del script
+(los atributos tienen prioridad):
+
+| Opción | Atributo | Uso |
+|---|---|---|
+| `indice` | `data-indice` | URL de `indice.json` (obligatoria) |
+| `titulo` | `data-titulo` | título del panel y del botón |
+| `posicion` | `data-posicion` | `derecha` o `izquierda` |
+| `tema` | `data-tema` | `claro`, `oscuro` o `auto` |
+| `abierto` | `data-abierto` | abre el panel al cargar |
+| `contacto.enlace` | `data-contacto-enlace` | URL con `{mensaje}`: `mailto:`, WhatsApp u otra |
+| `contacto.webhook` | `data-contacto-webhook` | formulario (mensaje, nombre, email) que envía por POST a esa URL |
+| `contacto.formato` | `data-contacto-formato` | `json` (por defecto) o `form`, que evita el preflight CORS |
+| `contacto.consentimiento` | `data-contacto-consentimiento` | casilla obligatoria con ese texto (`true` usa uno por defecto) |
+| `contacto.privacidad` | `data-contacto-privacidad` | enlace a la política de privacidad |
+| `sinRespuesta` | `data-sin-respuesta` | URL que recibe `{ tokens }` de las consultas sin respuesta |
+| `textos` | — | reemplaza cualquier texto de la interfaz (ver `src/widget/opciones.js`) |
+
+El webhook recibe `{ mensaje, nombre, email, consentimiento, ruta, pagina, indice, fecha }`; `ruta`
+son los ids de los nodos que la persona vio. El resto de la conversación no sale del navegador.
+
+Colores y fuente con variables CSS:
+
+```css
+pregunta-al-sitio { --pas-acento: #0a7d5a; --pas-fuente: "Inter", sans-serif; --pas-radio: 12px; }
+```
+
+Cualquier enlace o botón con `data-pregunta-al-sitio="¿Tienen hosting?"` abre el chat y hace esa
+pregunta (vacío solo abre). Por código: `PreguntaAlSitio.montar(opciones)` devuelve el elemento, con
+`abrir()`, `cerrar()`, `preguntar(texto)` y `borrar()`.
+
+Accesibilidad: el panel es un `dialog` no modal con nombre, el registro es `role="log"` con anuncios
+corteses, todos los controles tienen etiqueta, Escape cierra y devuelve el foco al botón, objetivos
+táctiles de 40 px o más, respeta `prefers-reduced-motion` y ocupa toda la pantalla bajo 480 px.
 
 ## Contenido de un sitio
 
@@ -89,6 +137,10 @@ El índice (`indice.json`) trae:
 
 Node 20 o superior. `npm install` y `npm test`. El fixture de referencia es Playa SPA
 (`tests/fixtures/playa`); después de cambiar sus nodos, `node cli/bin.mjs build tests/fixtures/playa`.
+
+Widget: `npm run empaquetar` genera `dist/pregunta-al-sitio.js` (un solo archivo, sin dependencias) y
+`npm run dev` sirve `http://localhost:5178/dev/`, una página de prueba con el índice de Playa y un
+webhook de contacto que guarda los envíos en memoria.
 
 ## Licencia
 

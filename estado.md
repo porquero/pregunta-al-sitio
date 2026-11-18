@@ -17,7 +17,8 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 
 ## Último trabajo (2026-11-18)
 
-- Fase 2 (CLI) terminada, con tests en verde y commiteada en `main`.
+- Fase 3 (widget) implementada, probada en el navegador con el índice de Playa (`npm run dev`) y commiteada.
+- Fase 2 (CLI) commiteada en `main` (`1205b64`).
 - Calibración con criterio de precisión alta 99 % (decidido el 2026-11-12). Con Playa deja solo 15 %
   de consultas en zona alta (hoy 42,5 %); el fixture conserva la config de producción de Playa.
 
@@ -34,8 +35,14 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 | 2 | `validar`: estructura fija + reglas de estilo en `sitio.yaml > validar` | ✅ Tests; Playa 0 errores / 0 avisos, igual que PHP |
 | 2 | `evaluar` y `calibrar` como comandos; `calibrar --escribir` en `sitio.yaml` | ✅ Tests |
 | 2 | Comando `pregunta-al-sitio` (bin) y `yaml` como dependencia | 🔧 Probado con `node cli/bin.mjs`; `npx` sin probar |
-| 2 | Commit de la fase 2 | ✅ En `main` |
-| 3 | Widget flotante: Shadow DOM, accesible, contacto por enlace o webhook | ⏳ |
+| 2 | Commit de la fase 2 | ✅ `1205b64` |
+| 3 | Widget `<pregunta-al-sitio>` con Shadow DOM, instalable con un `<script data-indice>` | ✅ Navegador: preguntar, chips, opciones A/B, restaurar, borrar |
+| 3 | Contacto por enlace (`{mensaje}`) o webhook (JSON o form, consentimiento, trampa para bots) | ✅ Navegador (envío real al webhook de prueba) + tests |
+| 3 | Accesibilidad: dialog, log, etiquetas, Escape devuelve el foco, pantalla completa en móvil | ✅ Navegador (revisión manual, sin lector de pantalla real) |
+| 3 | Carga diferida del índice, aviso y reintento si falla | ✅ Navegador |
+| 3 | Script empaquetado `dist/pregunta-al-sitio.js` (esbuild, 33 KB / 12 KB gzip) | ✅ `npm run empaquetar` |
+| 3 | Tema oscuro y posición izquierda | ✅ Navegador |
+| 3 | Commit de la fase 3 | ✅ En `main` |
 | 4 | Guía para que un agente genere nodos, sinónimos, aristas y preguntas | ⏳ |
 | 5 | Sitio de ejemplo, documentación, empaquetado y publicación | ⏳ |
 | 6 | (Opcional) Playa migra a la librería | ⏳ |
@@ -49,7 +56,8 @@ Objetivo por sitio: top-3 ≥ 90 %, precisión alta ≥ 95 %, fuga ≤ 3 %, fals
 
 - **Calibración 99 %:** ¿se queda así (más "¿Te refieres a A o B?") o se cambia el desempate para
   maximizar respuestas en zona alta entre los umbrales que cumplen?
-- **Formulario de contacto:** el de Playa no se portó; la fase 3 define enlace o webhook.
+- **`dist/` no se versiona:** se genera al publicar en npm (`prepublishOnly`). Si se quiere servir
+  desde GitHub vía jsDelivr sin npm, habría que commitearlo en cada versión.
 
 ## Cómo retomar
 
@@ -57,4 +65,5 @@ Objetivo por sitio: top-3 ≥ 90 %, precisión alta ≥ 95 %, fuga ≤ 3 %, fals
 npm install
 npm test
 node cli/bin.mjs evaluar tests/fixtures/playa
+npm run empaquetar && npm run dev   # widget en http://localhost:5178/dev/
 ```

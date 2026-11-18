@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prueba del widget</title>
+  <style>
+    body { font-family: Georgia, serif; max-width: 680px; margin: 40px auto; padding: 0 16px; line-height: 1.6; color: #222; background: #fafaf7; }
+    code { background: #eee; padding: 1px 4px; }
+    button, a.disparador { font: inherit; }
+  </style>
+</head>
+<body>
+  <h1>Página de prueba</h1>
+  <p>Sitio de prueba con el índice de Playa SPA (<code>tests/fixtures/playa/indice.json</code>) y el script empaquetado
+    (<code>npm run empaquetar</code>). El contacto envía al webhook de prueba de <code>dev/servidor.mjs</code>.</p>
+  <p>Disparadores: <a class="disparador" href="#" data-pregunta-al-sitio="¿Tienen hosting?">¿Tienen hosting?</a> ·
+    <button type="button" data-pregunta-al-sitio="">Abrir el chat</button></p>
+  <p>Modo: <a href="?">webhook</a> · <a href="?modo=enlace">enlace</a> · <a href="?modo=error">índice inexistente</a></p>
+  <script>
+    const modo = new URLSearchParams(location.search).get('modo');
+    window.PreguntaAlSitioConfig = {
+      indice: modo === 'error' ? '/no-existe.json' : '/tests/fixtures/playa/indice.json',
+      contacto: modo === 'enlace'
+        ? { enlace: 'mailto:hola@example.com?subject=Consulta&body={mensaje}' }
+        : { webhook: '/dev/webhook', consentimiento: true, privacidad: '/privacidad' },
+      sinRespuesta: '/dev/webhook?sin-respuesta',
+      retardo: 300,
+    };
+  </script>
+  <script src="/dist/pregunta-al-sitio.js" defer></script>
+</body>
+</html>

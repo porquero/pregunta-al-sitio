@@ -11,12 +11,15 @@
     "pregunta-al-sitio": "cli/bin.mjs"
   },
   "exports": {
+    ".": "./src/widget/widget.js",
     "./motor": "./src/motor/resolver.js",
-    "./motor/*": "./src/motor/*.js"
+    "./motor/*": "./src/motor/*.js",
+    "./widget.js": "./dist/pregunta-al-sitio.js"
   },
   "files": [
     "src",
     "cli",
+    "dist",
     "README.md",
     "LICENSE"
   ],
@@ -25,7 +28,10 @@
     "build": "node cli/bin.mjs build",
     "validar": "node cli/bin.mjs validar",
     "evaluar": "node cli/bin.mjs evaluar",
-    "calibrar": "node cli/bin.mjs calibrar"
+    "calibrar": "node cli/bin.mjs calibrar",
+    "empaquetar": "esbuild src/widget/index.js --bundle --minify --format=iife --target=es2022 --legal-comments=none --outfile=dist/pregunta-al-sitio.js",
+    "dev": "node dev/servidor.mjs",
+    "prepublishOnly": "npm run empaquetar && npm test"
   },
   "keywords": [
     "chat",
@@ -37,5 +43,8 @@
   ],
   "dependencies": {
     "yaml": "2.9.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
   }
 }
