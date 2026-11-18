@@ -53,7 +53,7 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 | 4 | `skill`: copia la guía a `.claude/skills/pregunta-al-sitio-contenido` | ✅ Tests |
 | 4 | `evaluar` revisa el set (ids, tipos, repetidas, composición, nodos sin consultas) y muestra errores de ajuste | ✅ Tests |
 | 4 | README con inicio rápido; `build --widget` | ✅ Pasos probados en carpeta temporal + test |
-| 4 | Commit de la fase 4 | ⏳ Espera aprobación |
+| 4 | Commit de la fase 4 | ✅ `9dd9f1d` |
 | 5 | Sitio de ejemplo, documentación, empaquetado y publicación | ⏳ |
 | 6 | (Opcional) Playa migra a la librería | ⏳ |
 
