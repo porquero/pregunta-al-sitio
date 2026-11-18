@@ -1,20 +1,94 @@
 # pregunta-al-sitio
 
-Chat flotante que responde preguntas con el contenido de tu sitio. El buscador (BM25F con tolerancia
-a errores de tipeo, sinónimos y detector de ámbito) corre en el navegador: no usa un LLM ni un backend
-al responder. v1 solo en español.
+Chat flotante que responde preguntas con el contenido de tu sitio. Un buscador corre en el navegador
+del visitante: no usa un modelo de lenguaje ni un servidor al responder. Solo en español.
 
-> Estado: fases 1 (motor), 2 (CLI) y 3 (widget). La guía de contenido y la publicación vienen después.
+> Estado: motor, CLI, widget y guía de contenido listos. Falta el sitio de ejemplo y publicar el
+> paquete en npm.
 
-## Instalación en un sitio
+## Cómo funciona
 
-1. Arma el índice con el CLI (más abajo) y publícalo junto al sitio, por ejemplo en `/indice.json`.
-2. Agrega el script:
+```
+fuentes/ (páginas del sitio, documentos)
+   │  un agente las lee siguiendo la guía de contenido
+   ▼
+contenido/ (nodos/*.md, sitio.yaml, preguntas.yaml)
+   │  pregunta-al-sitio build
+   ▼
+indice.json  +  pregunta-al-sitio.js  →  tu sitio
+```
+
+- **Fuentes**: el material de donde sale la información (páginas convertidas a Markdown, PDF,
+  presentaciones). Las lees tú o un agente; el chat nunca las usa directamente.
+- **Nodos**: cada tema que el chat sabe responder, en un archivo `.md` con un formato propio
+  (respuesta corta, preguntas de ejemplo, palabras clave). Los escribe el agente a partir de las fuentes
+  y los apruebas tú.
+- **Índice**: `indice.json`, el archivo que arma `build` con los nodos aprobados. Es lo único que
+  descarga el widget.
+
+## Inicio rápido
+
+Partes con una carpeta de proyecto y las fuentes dentro:
+
+```
+mi-sitio/
+  fuentes/       páginas convertidas a .md, PDF, textos…
+```
+
+**1. Instala el comando** (una vez). Mientras el paquete no esté en npm, desde el repo
+`pregunta-al-sitio`:
+
+```bash
+npm install && npm run empaquetar && npm link
+```
+
+Desde ahí, `pregunta-al-sitio` funciona en cualquier carpeta.
+
+**2. Crea la carpeta de contenido e instala la guía** (dentro de `mi-sitio/`):
+
+```bash
+pregunta-al-sitio iniciar contenido --nombre "Mi Sitio"
+```
+
+```bash
+pregunta-al-sitio skill
+```
+
+`iniciar` crea `contenido/` con `sitio.yaml`, los nodos `inicio` y `contacto` y una plantilla de
+preguntas. `skill` copia la guía de contenido a `.claude/skills/` para que Claude Code la use.
+
+**3. Pide el contenido al agente.** Abre Claude Code en `mi-sitio/` y escribe:
+
+> Prepara el contenido de pregunta-al-sitio a partir de fuentes/
+
+El agente se detiene tres veces para que revises:
+
+1. El **mapa de nodos**: qué temas tendrá el chat, más los conflictos entre fuentes y los datos que
+   faltan (en `contenido/informes/`).
+2. El **set de preguntas** con que se mide el chat.
+3. El **informe final** con las métricas. Con tu aprobación, marca los nodos como aprobados.
+
+Entre un alto y otro valida, mide y corrige solo.
+
+**4. Arma el índice y copia el widget** a la carpeta pública del sitio:
+
+```bash
+pregunta-al-sitio build contenido -o public/indice.json --widget
+```
+
+**5. Agrega el script** a las páginas:
 
 ```html
-<script src="pregunta-al-sitio.js" data-indice="/indice.json"
+<script src="/pregunta-al-sitio.js" data-indice="/indice.json"
         data-contacto-enlace="https://wa.me/56900000000?text={mensaje}" defer></script>
 ```
+
+Cada vez que cambie el contenido del sitio, actualiza las fuentes, pide al agente que actualice los
+nodos y repite el paso 4.
+
+---
+
+## Widget
 
 Aparece un botón flotante que abre el chat. El índice se descarga recién al abrirlo. La conversación
 queda en `localStorage` del visitante y se restaura al volver.
@@ -37,6 +111,8 @@ Opciones como atributos `data-*` del script, o en `window.PreguntaAlSitioConfig`
 | `sinRespuesta` | `data-sin-respuesta` | URL que recibe `{ tokens }` de las consultas sin respuesta |
 | `textos` | — | reemplaza cualquier texto de la interfaz (ver `src/widget/opciones.js`) |
 
+Sin opción de contacto, las consultas sin respuesta muestran solo el nodo `contacto`.
+
 El webhook recibe `{ mensaje, nombre, email, consentimiento, ruta, pagina, indice, fecha }`; `ruta`
 son los ids de los nodos que la persona vio. El resto de la conversación no sale del navegador.
 
@@ -54,13 +130,14 @@ Accesibilidad: el panel es un `dialog` no modal con nombre, el registro es `role
 corteses, todos los controles tienen etiqueta, Escape cierra y devuelve el foco al botón, objetivos
 táctiles de 40 px o más, respeta `prefers-reduced-motion` y ocupa toda la pantalla bajo 480 px.
 
-## Contenido de un sitio
+## Carpeta de contenido
 
 ```
 contenido/
-  sitio.yaml       nombre, ambito, diccionario, config (la escribe calibrar) y validar
-  nodos/*.md       un nodo por archivo: frontmatter YAML y cuerpo Markdown
-  preguntas.yaml   set de evaluación: consulta, esperado, tipo
+  sitio.yaml       nombre, diccionario, ambito, validar y config (esta última la escribe calibrar)
+  nodos/*.md       un nodo por archivo
+  preguntas.yaml   set de evaluación
+  informes/        inventario, mapa de nodos, conflictos y pendientes
 ```
 
 Un nodo:
@@ -72,7 +149,7 @@ tipo: servicio
 titulo: Hosting empresarial
 respuesta_corta: >-
   Respuesta de 40 a 60 palabras que el chat muestra. Admite **negrita** y [enlaces](/contacto).
-enlace: /hosting                # "Ver más"; también se aceptan ruta, pagina_padre y enlace_externo
+enlace: /hosting                # "Ver más"
 formato: tarjeta                # texto | tarjeta
 variante: servicio              # con tarjeta: servicio, proceso, cifras…
 tarjeta: { eyebrow: Servicio, items: [SSL automático, Respaldos], etiquetas: [cPanel], cta: { texto: Cotizar, destino: /contacto } }
@@ -83,35 +160,29 @@ aristas: [{ a: contacto, tipo: cta, peso: 0.7 }]
 chips: [¿Hacen respaldos?, { texto: Hablar con el equipo, a: contacto }]
 estado: aprobado                # borrador | aprobado
 ---
-Cuerpo opcional (no se usa en el chat).
 ```
 
-El nodo con id `contacto` recibe las consultas sin respuesta; su campo `derivacion` es el texto que
-se muestra en ese caso.
+El detalle de cada campo, del diccionario, del ámbito y del set de preguntas está en la guía:
+[`guia-contenido/`](guia-contenido/SKILL.md).
 
-## CLI
+## Comandos
 
-```bash
-npx pregunta-al-sitio validar contenido
-npx pregunta-al-sitio build contenido -o public/indice.json
-npx pregunta-al-sitio evaluar contenido
-npx pregunta-al-sitio calibrar contenido --escribir
-```
+| Comando | Qué hace |
+|---|---|
+| `iniciar <carpeta> --nombre "…"` | crea la carpeta de contenido con plantillas; no sobrescribe |
+| `skill [carpeta]` | copia la guía a `<carpeta>/.claude/skills/pregunta-al-sitio-contenido` |
+| `validar <carpeta>` | revisa los nodos: estructura y reglas de estilo de `sitio.yaml > validar`; sale con 1 si hay errores |
+| `build <carpeta> -o <ruta> [--widget]` | arma `indice.json` con los nodos aprobados; `--widget` copia `pregunta-al-sitio.js` al lado |
+| `evaluar <carpeta>` | revisa `preguntas.yaml` y mide el chat; muestra los errores de ajuste y de validación |
+| `calibrar <carpeta> --escribir` | elige parámetros y umbrales del buscador y los guarda en `sitio.yaml` |
 
-- `validar` revisa estructura (ids, estados, chips y aristas hacia nodos que existen) y estilo según
-  `sitio.yaml > validar`: largo de la respuesta, preguntas mínimas, tipos y variantes permitidas, un
-  nombre que debería aparecer y reglas propias con expresiones regulares. Sale con 1 si hay errores.
-- `build` arma `indice.json`: solo nodos aprobados (`--borradores` incluye los demás), con la respuesta
-  ya en HTML escapado y los chips de seguimiento.
-- `evaluar` informa top-1, top-3, precisión en zona alta, fuga y falso rechazo en la partición de
-  validación, más errores y tiempos. Sale con 1 si no cumple los objetivos.
-- `calibrar` elige parámetros del motor y umbrales de zona en la partición de ajuste, exigiendo
-  precisión alta de 99 %. Con `--escribir` los guarda en `sitio.yaml` (conserva los comentarios).
-
-Objetivos por sitio: top-3 ≥ 90 %, precisión en zona alta ≥ 95 %, fuga de conocimiento general ≤ 3 %
-y falso rechazo ≤ 5 %.
+`build`, `evaluar` y `calibrar` aceptan `--borradores` para incluir los nodos sin aprobar. Objetivos de
+`evaluar`: top-3 ≥ 90 %, precisión en zona alta ≥ 95 %, fuga de conocimiento general ≤ 3 % y falso
+rechazo ≤ 5 %.
 
 ## Motor
+
+Para usar el buscador sin el widget:
 
 ```js
 import { crearResolver } from 'pregunta-al-sitio/motor';
@@ -121,24 +192,15 @@ r.resolver('¿Tienen hosting?');
 // → { zona: 'alta' | 'media' | 'mixta' | 'baja', nodos, ambito, senales, terminos, derivacion, candidatos }
 ```
 
-El índice (`indice.json`) trae:
-
-| Clave | Contenido |
-|---|---|
-| `version` | hash del contenido |
-| `nombre` | nombre del sitio |
-| `nodos` | `{ id, tipo, formato, variante, titulo, preguntas, keywords, sinonimos, aristas, chips, enlace, seguimiento, respuesta }` |
-| `diccionario` | sinónimos del sitio (`variante: canónica`), que se suman al diccionario base; `null` quita una entrada de la base |
-| `ambito` | reglas del detector: `marcas`, `oferta`, `necesidad`, `genericas`, `derivar`, `derivar_salvo` |
-| `derivacion` | texto que se muestra cuando la consulta va a contacto |
-| `config` | `{ motor, zonas, opcionesMedia }`; lo que falte se toma de `src/motor/config.js` |
+`indice.json` trae `version`, `nombre`, `nodos` (con `respuesta` en HTML, `enlace` y `seguimiento`),
+`diccionario`, `ambito`, `derivacion` y `config`.
 
 ## Desarrollo
 
 Node 20 o superior. `npm install` y `npm test`. El fixture de referencia es Playa SPA
 (`tests/fixtures/playa`); después de cambiar sus nodos, `node cli/bin.mjs build tests/fixtures/playa`.
 
-Widget: `npm run empaquetar` genera `dist/pregunta-al-sitio.js` (un solo archivo, sin dependencias) y
+`npm run empaquetar` genera `dist/pregunta-al-sitio.js` (un solo archivo, sin dependencias) y
 `npm run dev` sirve `http://localhost:5178/dev/`, una página de prueba con el índice de Playa y un
 webhook de contacto que guarda los envíos en memoria.
 

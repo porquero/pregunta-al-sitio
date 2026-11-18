@@ -20,6 +20,7 @@
     "src",
     "cli",
     "dist",
+    "guia-contenido",
     "README.md",
     "LICENSE"
   ],

@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -61,4 +61,11 @@ test('calibrar --escribir guarda la config en sitio.yaml y conserva los comentar
   assert.equal(sitio.config.motor.k1, 1.2);
   assert.equal(sitio.config.opcionesMedia, 2);
   assert.equal(sitio.nombre, 'Playa SPA');
+});
+
+test('build --widget copia el script junto al índice', { skip: !existsSync(new URL('../../dist/pregunta-al-sitio.js', import.meta.url)) && 'falta npm run empaquetar' }, () => {
+  const dir = copia();
+  const r = correr('build', dir, '-o', join(dir, 'publico', 'indice.json'), '--widget');
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(existsSync(join(dir, 'publico', 'pregunta-al-sitio.js')));
 });

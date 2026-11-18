@@ -4,8 +4,9 @@
 //   sitio.yaml       nombre, ambito, diccionario, config (la escribe calibrar) y validar
 //   nodos/*.md       un nodo por archivo
 //   preguntas.yaml   set de evaluación (para evaluar y calibrar)
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { parseDocument } from 'yaml';
 import { construirIndice } from './build.mjs';
@@ -14,16 +15,25 @@ import { evaluar, FACTOR_MOVIL } from './evaluacion/evaluar.mjs';
 import { calibrar } from './evaluacion/calibrar.mjs';
 import { cargarIndice, cargarPreguntas } from './evaluacion/datos.mjs';
 import { cumple, resumen } from './evaluacion/metricas.mjs';
+import { revisarPreguntas } from './evaluacion/preguntas.mjs';
+import { iniciarSitio, instalarSkill } from './iniciar.mjs';
+
+const WIDGET = fileURLToPath(new URL('../dist/pregunta-al-sitio.js', import.meta.url));
 
 const AYUDA = `Uso: pregunta-al-sitio <comando> [carpeta] [opciones]
 
 Comandos:
+  iniciar   crea la carpeta de un sitio nuevo con plantillas (no sobrescribe)
+              --nombre <texto>      nombre del sitio
+  skill     copia la guía de contenido como skill de Claude Code
+              (en <carpeta>/.claude/skills/pregunta-al-sitio-contenido)
   build     arma indice.json desde sitio.yaml y nodos/*.md
               -o, --salida <ruta>   destino (por defecto <carpeta>/indice.json)
               --borradores          incluye los nodos en borrador
+              --widget              copia pregunta-al-sitio.js junto al índice
   validar   revisa los nodos; sale con código 1 si hay errores
               --silencioso          no muestra los avisos
-  evaluar   mide el resolvedor con preguntas.yaml
+  evaluar   revisa preguntas.yaml y mide el resolvedor con él
               --preguntas <ruta>    set de evaluación (por defecto <carpeta>/preguntas.yaml)
               --indice <ruta>       usa un indice.json ya armado en vez de la carpeta
               --json <ruta>         guarda el informe completo
@@ -43,6 +53,8 @@ const OPCIONES = {
   indice: { type: 'string' },
   json: { type: 'string' },
   escribir: { type: 'boolean', default: false },
+  nombre: { type: 'string' },
+  widget: { type: 'boolean', default: false },
   ayuda: { type: 'boolean', short: 'h', default: false },
 };
 
@@ -56,6 +68,21 @@ function indiceDe(dir, valores) {
 }
 
 const comandos = {
+  skill(dir) {
+    console.log(`Guía instalada en ${instalarSkill(dir)}`);
+    return 0;
+  },
+
+  iniciar(dir, v) {
+    const creados = iniciarSitio(dir, { nombre: v.nombre });
+    for (const f of creados) console.log(`creado  ${join(dir, f)}`);
+    console.log(
+      '\nSiguiente: deja las páginas y documentos del sitio en fuentes/, corre `pregunta-al-sitio skill`' +
+        '\ny pide a Claude Code "Prepara el contenido de pregunta-al-sitio a partir de fuentes/".',
+    );
+    return 0;
+  },
+
   build(dir, v) {
     const { indice, errores } = construirIndice(dir, { borradores: v.borradores });
     for (const e of errores) console.error(`ERROR  ${e}`);
@@ -63,6 +90,12 @@ const comandos = {
     mkdirSync(dirname(resolve(salida)), { recursive: true });
     writeFileSync(salida, `${JSON.stringify(indice)}\n`);
     console.log(`${indice.nodos.length} nodos en el chat · versión ${indice.version} · ${salida}`);
+    if (v.widget) {
+      if (!existsSync(WIDGET)) throw new Error(`falta ${WIDGET}; corre \`npm run empaquetar\` en el repo de pregunta-al-sitio`);
+      const destino = join(dirname(resolve(salida)), 'pregunta-al-sitio.js');
+      copyFileSync(WIDGET, destino);
+      console.log(`widget copiado en ${destino}`);
+    }
     return errores.length ? 1 : 0;
   },
 
@@ -77,7 +110,13 @@ const comandos = {
 
   evaluar(dir, v) {
     const datos = indiceDe(dir, v);
-    const s = evaluar(datos, cargarPreguntas(v.preguntas ?? join(dir, 'preguntas.yaml')));
+    const consultas = cargarPreguntas(v.preguntas ?? join(dir, 'preguntas.yaml'));
+    const revision = revisarPreguntas(consultas, datos);
+    for (const e of revision.errores) console.error(`ERROR  ${e}`);
+    for (const a of revision.avisos) console.log(`aviso  ${a}`);
+    if (revision.errores.length) return 1;
+    if (revision.avisos.length) console.log('');
+    const s = evaluar(datos, consultas);
     console.log(`Índice ${s.version} · ${datos.nodos.length} nodos · ajuste ${s.tamanos.ajuste} · validación ${s.tamanos.validacion}\n`);
     console.log(`Validación: ${resumen(s.validacion)}`, cumple(s.validacion) ? '· cumple' : '· NO cumple');
     console.log(`Ajuste:     ${resumen(s.ajuste)}`);
@@ -86,8 +125,12 @@ const comandos = {
       console.log(`  ${t.padEnd(12)} n ${String(m.n).padStart(3)} · acierto ${p(m.aciertoTotal)} · top-3 ${p(m.top3)}`);
     }
     console.log(`\nFuga sin detector de ámbito (solo puntaje): ${p(s.fugaSinDetector)}`);
+    const linea = (e) => `  [${e.tipo}] "${e.consulta}" → ${e.zona} ${e.obtenido.join(', ')} (esperado ${e.esperado.join(' | ')})`;
+    // Los de ajuste son los que se corrigen; los de validación muestran cuánto generaliza.
+    console.log(`\nErrores en ajuste (${s.erroresAjuste.length}):`);
+    for (const e of s.erroresAjuste) console.log(linea(e));
     console.log(`\nErrores en validación (${s.errores.length}):`);
-    for (const e of s.errores) console.log(`  [${e.tipo}] "${e.consulta}" → ${e.zona} ${e.obtenido.join(', ')} (esperado ${e.esperado.join(' | ')})`);
+    for (const e of s.errores) console.log(linea(e));
     const t = s.medicion;
     console.log(
       `\nÍndice ${(t.indice / 1024).toFixed(1)} KB (${(t.indiceGz / 1024).toFixed(1)} KB gzip) · carga ${t.carga.toFixed(1)} ms` +
@@ -135,5 +178,10 @@ export function main(argv = process.argv.slice(2)) {
     console.error(`Comando desconocido: ${comando}\n\n${AYUDA}`);
     return 2;
   }
-  return comandos[comando](dir, parsed.values);
+  try {
+    return comandos[comando](dir, parsed.values);
+  } catch (e) {
+    console.error(`ERROR  ${e.message}`);
+    return 1;
+  }
 }
