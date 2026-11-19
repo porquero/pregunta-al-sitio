@@ -1,7 +1,7 @@
 // Máquina de estados del chat (dialogo.js), con un render de prueba.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decidir, debeRegistrarse, crearDialogo, LARGO_MAXIMO } from '../../src/motor/dialogo.js';
+import { decidir, debeRegistrarse, crearDialogo, chipsSeguimiento, LARGO_MAXIMO } from '../../src/motor/dialogo.js';
 import { crearResolver } from '../../src/motor/resolver.js';
 import { cargarIndice } from '../../cli/evaluacion/datos.mjs';
 
@@ -29,9 +29,9 @@ function armar() {
   const guardado = [];
   const registrados = [];
   const render = Object.fromEntries(
-    ['usuario', 'nodo', 'opciones', 'mixta', 'contacto'].map((tipo) => [tipo, async (ref, { animar }) => {
+    ['usuario', 'nodo', 'opciones', 'mixta', 'contacto'].map((tipo) => [tipo, async (ref, { animar, vistos }) => {
       await new Promise((ok) => setTimeout(ok, tipo === 'usuario' ? 0 : 5));
-      dibujado.push({ tipo, ref, animar });
+      dibujado.push(vistos ? { tipo, ref, animar, vistos } : { tipo, ref, animar });
     }]),
   );
   const dialogo = crearDialogo({
@@ -105,4 +105,29 @@ test('los chips de los nodos abren un nodo del chat o llevan a una respuesta de 
       assert.notEqual(res.nodos[0], n.id, `chip "${chip}" de ${n.id} vuelve al mismo nodo`);
     }
   }
+});
+
+test('chips: sin nodos ya mostrados; completa con aristas; el origen solo si no hay otra opción', () => {
+  const n = (id, extra = {}) => ({ id, titulo: `${id.toUpperCase()}, detalle`, chips: [], aristas: [], seguimiento: [], ...extra });
+  const porId = new Map(['a', 'b', 'c', 'd', 'e'].map((id) => [id, n(id)]));
+  const a = n('a', {
+    seguimiento: [{ texto: 'B', nodo: 'b' }, { texto: 'C', nodo: 'c' }, { texto: '¿Precio?', q: '¿Precio?' }],
+    aristas: [{ a: 'b', peso: 0.9 }, { a: 'c', peso: 0.8 }, { a: 'd', peso: 0.5 }, { a: 'e', peso: 0.7 }],
+  });
+  assert.deepEqual(chipsSeguimiento(a, { porId }), a.seguimiento);
+  assert.deepEqual(chipsSeguimiento(a, { vistos: ['b'], porId }), [{ texto: 'C', nodo: 'c' }, { texto: '¿Precio?', q: '¿Precio?' }, { texto: 'E', nodo: 'e' }]);
+  // Con chips declarados no se agregan otros.
+  assert.deepEqual(chipsSeguimiento({ ...a, chips: ['x'] }, { vistos: ['b'], porId }), [{ texto: 'C', nodo: 'c' }, { texto: '¿Precio?', q: '¿Precio?' }]);
+  // Sin alternativas, vuelve el origen.
+  const solo = n('d', { seguimiento: [{ texto: 'A', nodo: 'a' }], aristas: [{ a: 'a', peso: 0.5 }] });
+  assert.deepEqual(chipsSeguimiento(solo, { vistos: ['a'], porId }), [{ texto: 'A', nodo: 'a' }]);
+  assert.deepEqual(chipsSeguimiento(solo, { vistos: ['a', 'b'], porId }), [], 'a se mostró, pero el origen es b');
+});
+
+test('el diálogo pasa al render los nodos mostrados antes', async () => {
+  const { dialogo, dibujado } = armar();
+  dialogo.abrirNodo('metodologia', 'Metodología');
+  dialogo.abrirNodo('contacto', 'Contacto');
+  await dialogo.abrirNodo('metodologia', 'Metodología');
+  assert.deepEqual(dibujado.filter((d) => d.tipo === 'nodo').map((d) => d.vistos), [[], ['metodologia'], ['metodologia', 'contacto']]);
 });

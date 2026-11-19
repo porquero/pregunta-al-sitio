@@ -5,12 +5,17 @@ import { validarNodos, validarSitio, reglasDe, contarPalabras } from '../../cli/
 import { parsearNodo } from '../../cli/contenido/leer.mjs';
 import { FIXTURE_PLAYA } from '../../cli/evaluacion/datos.mjs';
 
-test('el contenido de Playa no tiene errores; avisa el enlace a wotel.cl', () => {
+test('el contenido de Playa no tiene errores; avisa wotel.cl y las aristas', () => {
   const { errores, avisos, nodos } = validarSitio(FIXTURE_PLAYA);
   assert.equal(nodos.length, 37);
   assert.deepEqual(errores, []);
   // wotel.cl es otro dominio: build omite su "Ver más".
-  assert.deepEqual(avisos, ["wotel: enlace 'https://www.wotel.cl' fuera del sitio (playaspa.cl): se omite"]);
+  assert.ok(avisos.includes("wotel: enlace 'https://www.wotel.cl' fuera del sitio (playaspa.cl): se omite"));
+  const cuenta = (re) => avisos.filter((a) => re.test(a)).length;
+  assert.deepEqual(
+    { reciprocas: cuenta(/arista recíproca/), unaSalida: cuenta(/una sola arista/), concentradas: cuenta(/recibe aristas/), total: avisos.length },
+    { reciprocas: 20, unaSalida: 10, concentradas: 3, total: 34 },
+  );
 });
 
 const palabras = (n) => Array.from({ length: n }, (_, i) => `palabra${i}`).join(' ');

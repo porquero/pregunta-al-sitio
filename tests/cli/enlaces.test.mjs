@@ -54,14 +54,16 @@ test('autoenlace: gana el nombre más largo', () => {
   assert.equal(auto('Casona Distante Tours sale de Distante'), `${NODO('tours', 'Casona Distante Tours')} sale de ${NODO('pueblo', 'Distante')}`);
 });
 
-test('autoenlace: por defecto abre el nodo; con destino enlace, solo enlaces del sitio', () => {
+test('autoenlace: por defecto abre el nodo; con destino enlace, solo enlaces del sitio o texto', () => {
   const url = crearFiltroUrl(['casona.cl']);
   assert.equal(auto('Distante'), NODO('pueblo', 'Distante'), 'por defecto: abre el nodo');
   assert.equal(auto('Distante', { destino: 'enlace', url }), '<a href="/pueblo">Distante</a>');
-  assert.equal(auto('Casona Distante Tours', { destino: 'enlace', url }), NODO('tours', 'Casona Distante Tours'), 'tours.cl no es el sitio: abre el nodo');
+  assert.equal(auto('Casona Distante Tours', { destino: 'enlace', url }), 'Casona Distante Tours', 'tours.cl no es el sitio: texto, sin href="#"');
   const propio = [{ nombre: 'Tours', id: 'tours', enlace: 'https://www.casona.cl/tours' }];
   assert.equal(enLinea('Tours', { autoenlace: crearAutoenlace({ nombres: propio, destino: 'enlace', url }) }), '<a href="https://www.casona.cl/tours">Tours</a>');
-  assert.equal(auto('Casona', { destino: 'enlace', url }), NODO('casona', 'Casona'), 'sin enlace: abre el nodo');
+  assert.equal(auto('Casona', { destino: 'enlace', url }), 'Casona', 'sin enlace: texto');
+  // Una mención sin destino no gasta el máximo: el siguiente nodo se enlaza.
+  assert.equal(auto('Casona y Distante', { destino: 'enlace', url, max: 1 }), 'Casona y <a href="/pueblo">Distante</a>');
   assert.ok(!auto('Casona Distante Tours y Distante', { destino: 'enlace', url }).includes('_blank'));
 });
 
@@ -90,20 +92,28 @@ test('respuesta: los enlaces fuera del sitio se omiten y queda su texto', () => 
   assert.ok(!html.includes('otro.cl') && html.includes('<dt>Afuera</dt>') && !html.includes('pas-cta'), html);
 });
 
-test('build: sin sitio, "Ver más" y enlaces absolutos se omiten', () => {
+test('build: sin sitio infiere el dominio de los enlace; omitidos se cuentan', () => {
   const dir = mkdtempSync(join(tmpdir(), 'pas-dom-'));
   mkdirSync(join(dir, 'nodos'));
   const md = (id, enlace, texto) => `---\nid: ${id}\ntipo: t\ntitulo: ${id}\nenlace: ${enlace}\nrespuesta_corta: ${texto}\nestado: aprobado\n---\n`;
   writeFileSync(join(dir, 'nodos', 'a.md'), md('a', 'https://misitio.cl/a', 'Ver [web](https://misitio.cl/x) y [ruta](/y).'));
   writeFileSync(join(dir, 'nodos', 'b.md'), md('b', '/b', 'b'));
-  const sin = construirIndice(dir).indice.nodos;
-  assert.equal(sin[0].enlace, null);
-  assert.match(sin[0].respuesta, /Ver web y <a href="\/y">ruta<\/a>\./);
-  assert.equal(sin[1].enlace, '/b');
-  writeFileSync(join(dir, 'sitio.yaml'), 'sitio: misitio.cl\n');
-  const con = construirIndice(dir).indice.nodos;
-  assert.equal(con[0].enlace, 'https://misitio.cl/a');
-  assert.match(con[0].respuesta, /<a href="https:\/\/misitio.cl\/x">web<\/a>/);
+  const inferido = construirIndice(dir);
+  assert.deepEqual(inferido.dominios, ['misitio.cl']);
+  assert.match(inferido.avisos[0], /no define sitio: uso misitio\.cl/);
+  assert.equal(inferido.indice.nodos[0].enlace, 'https://misitio.cl/a');
+  assert.match(inferido.indice.nodos[0].respuesta, /<a href="https:\/\/misitio.cl\/x">web<\/a>/);
+  assert.equal(inferido.indice.nodos[1].enlace, '/b');
+
+  writeFileSync(join(dir, 'sitio.yaml'), 'sitio: otro.cl\n');
+  const otro = construirIndice(dir);
+  assert.equal(otro.indice.nodos[0].enlace, null);
+  assert.match(otro.indice.nodos[0].respuesta, /Ver web y <a href="\/y">ruta<\/a>\./);
+  assert.equal(otro.omitidos, 2, '"Ver más" y el enlace del texto');
+  assert.deepEqual(otro.avisos, []);
+
+  writeFileSync(join(dir, 'sitio.yaml'), 'sitio: "[REDACTAR dominio]"\n');
+  assert.deepEqual(construirIndice(dir).dominios, ['misitio.cl'], 'el marcador cuenta como sin sitio');
 });
 
 test('autoenlace: máximo por respuesta', () => {
@@ -177,7 +187,10 @@ test('validar avisa los enlaces fuera del sitio', () => {
     "a: enlace 'https://otro.cl/x' fuera del sitio (misitio.cl): se omite",
     "a: enlace 'https://otro.cl' fuera del sitio (misitio.cl): se omite",
   ]);
-  assert.ok(validarNodos(nodos).avisos.includes("a: enlace 'https://misitio.cl/a' fuera del sitio (falta sitio en sitio.yaml): se omite"));
+  // Sin sitio, validar infiere el dominio igual que build y lo avisa.
+  const sin = validarNodos(nodos).avisos;
+  assert.ok(sin.includes('sitio.yaml: falta sitio (dominio principal); build usará misitio.cl, el más frecuente en los enlace. Escríbelo.'));
+  assert.ok(!sin.some((x) => x.includes("'https://misitio.cl/a'")));
 });
 
 test('iniciar --sitio escribe el dominio', () => {
@@ -186,5 +199,5 @@ test('iniciar --sitio escribe el dominio', () => {
   assert.equal(parse(readFileSync(join(dir, 'sitio.yaml'), 'utf8')).sitio, 'acme.cl');
   const vacio = join(mkdtempSync(join(tmpdir(), 'pas-ini-')), 's');
   iniciarSitio(vacio);
-  assert.equal(parse(readFileSync(join(vacio, 'sitio.yaml'), 'utf8')).sitio, null);
+  assert.match(parse(readFileSync(join(vacio, 'sitio.yaml'), 'utf8')).sitio, /^\[REDACTAR dominio principal/);
 });

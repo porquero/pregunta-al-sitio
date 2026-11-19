@@ -17,6 +17,26 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 
 ## Último trabajo (2026-11-19)
 
+- Hallazgos del primer sitio real (turismo, 54 nodos), 11 puntos, sin commit:
+  1. `build --widget` empaqueta antes de copiar (con esbuild) o falla si `src/` es más reciente que
+     `dist/`; test que compara el hash del bundle con una compilación nueva.
+  2. Autoenlace con `autoenlazar_destino: enlace` y sin enlace del sitio: texto, no `href="#"`.
+  3. `validar`: error por claves desconocidas o nulas en `tarjeta.items/cifras/cta` (caso "2,5 horas").
+  4. `sitio` en la plantilla de `iniciar`; `build` cuenta los enlaces omitidos; sin `sitio` infiere
+     el dominio más frecuente de los `enlace` y avisa.
+  5. Chips: el widget no repite nodos ya vistos y completa con aristas; el origen solo si no hay otra
+     opción. `validar` avisa aristas recíprocas, una sola saliente y nodos con aristas de > 15 %.
+  6. `validar` avisa nombres enlazables comunes o mencionados en > 10 respuestas; `autoenlazar: false`.
+  7. Seguimiento: **fuera de las métricas** (decidido). Con contexto ×1,6 las 8 de Playa aciertan, pero
+     el 2,4 % de las demás pierde el top-1 con un nodo anterior sin relación, y `evaluar` no lo mide.
+  8. `pregunta-al-sitio cobertura contenido --fuentes fuentes` (regla "una fuente con URL: es un
+     nodo"; excepciones en `sitio.yaml > cobertura.excluir`).
+  9. `calibrar` muestra el compromiso falso rechazo / fuga por `Cm`, acepta `--max-falso-rechazo` y
+     descarta umbrales con falso rechazo de validación sobre el máximo.
+  10. Erratas por distancia de edición (1 en 5 a 8 letras, 2 desde 9) antes de los trigramas.
+  11. README con `wa.me/TU-NUMERO`; el widget avisa en consola si el enlace lo conserva.
+  Probado en el navegador: chips sin repetir y aviso de consola.
+
 - Regla: el chat solo enlaza al sitio principal (`sitio: misitio.cl` en `sitio.yaml`, subdominios y
   cualquier ruta; también rutas relativas, `mailto:` y `tel:`). `build` omite el resto en la
   respuesta, la tarjeta y el "Ver más"; `validar` lo avisa; `iniciar --sitio`. El autoenlace ya no
@@ -68,12 +88,15 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 | 4 | Commit de la fase 4 | ✅ `9dd9f1d` |
 | 4+ | Enlaces entre nodos: `nodo:`, autoenlace, `validar` de ids rotos, clic en el widget | ✅ Tests + navegador · `975eb88` |
 | 4+ | Solo enlaces del sitio principal (`sitio` en `sitio.yaml`) | ✅ Tests + navegador · commit siguiente al `975eb88` |
+| 4+ | Hallazgos del sitio de turismo (11 puntos: widget al día, tarjetas, dominio, chips, cobertura, calibrar, erratas…) | ✅ Tests + navegador · ⏳ commit |
 | 5 | Sitio de ejemplo, documentación, empaquetado y publicación | ⏳ |
 | 6 | (Opcional) Playa migra a la librería | ⏳ |
 
 ## Métricas de referencia (fixture Playa, partición de validación)
 
-top-1 89,8 % · top-3 95,9 % · precisión alta 100 % · fuga 0 % · falso rechazo 4,5 %.
+top-1 91,3 % · top-3 97,8 % · precisión alta 100 % · fuga 0 % · falso rechazo 2,4 % (sin las 8 consultas
+`seguimiento`, que se informan aparte: 75 % de acierto). Antes de excluirlas: 89,8 / 95,9 / 100 / 0 / 4,5.
+Ajuste con distancia de edición: top-1 88,4 %, top-3 94,2 %, falso rechazo 1,5 % (antes 87,0 / 92,8 / 3,0).
 Objetivo por sitio: top-3 ≥ 90 %, precisión alta ≥ 95 %, fuga ≤ 3 %, falso rechazo ≤ 5 %.
 
 ## Decisiones abiertas
@@ -94,6 +117,11 @@ Objetivo por sitio: top-3 ≥ 90 %, precisión alta ≥ 95 %, fuga ≤ 3 %, fals
   el visitante no salga del sitio. Decidir en Playa.
 - **`mailto:` y `tel:`** se permiten (no abren otro sitio web). Si se quieren prohibir, es una línea en
   `crearFiltroUrl`.
+
+- **Avisos nuevos en Playa:** `validar` da 34 avisos (20 aristas recíprocas, 10 nodos con una sola
+  arista saliente, 3 nodos que reciben aristas de más del 15 %). Se corrigen en Playa, no en el fixture.
+- **Commit `802aba7`** (guía: "una fuente con URL: es un nodo") lo hizo otra sesión; citaba un
+  `cobertura-url.mjs` que no existía y ahora apunta al subcomando `cobertura`.
 
 ## Cómo retomar
 

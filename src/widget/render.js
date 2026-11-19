@@ -3,6 +3,7 @@
 // como HTML; el HTML de las respuestas viene del índice, armado y escapado por `build`.
 import { formatear, preguntaOpciones } from './opciones.js';
 import { enlaceContacto, cuerpoContacto, erroresContacto, enviarContacto } from './contacto.js';
+import { chipsSeguimiento } from '../motor/dialogo.js';
 
 const espera = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
@@ -40,6 +41,8 @@ export function crearRender({ log, datos, opciones, ruta = () => [] }) {
   let contador = 0;
 
   const nodoDe = async (id) => (await datos()).nodos.find((n) => n.id === id) ?? null;
+  let mapa = null;
+  const porId = async () => (mapa ??= new Map((await datos()).nodos.map((n) => [n.id, n])));
   const titulo = async (id) => {
     const n = await nodoDe(id);
     return n ? n.titulo.split(',')[0].trim() : id;
@@ -81,7 +84,7 @@ export function crearRender({ log, datos, opciones, ruta = () => [] }) {
   }
 
   /** Bloque del nodo: su HTML, "Ver más" y los chips de seguimiento. */
-  async function bloqueNodo(id, { conSeguimiento = true } = {}) {
+  async function bloqueNodo(id, { conSeguimiento = true, vistos = [] } = {}) {
     const n = await nodoDe(id);
     if (!n) return null;
     const plantilla = document.createElement('template');
@@ -96,8 +99,9 @@ export function crearRender({ log, datos, opciones, ruta = () => [] }) {
       p.append(a);
       bloque.append(p);
     }
-    if (conSeguimiento && n.seguimiento?.length) {
-      bloque.append(chips(textos.sigue, n.seguimiento.map((s) => ({ texto: s.texto, datos: s.nodo ? { nodo: s.nodo } : { q: s.q } }))));
+    const seguimiento = conSeguimiento ? chipsSeguimiento(n, { vistos, porId: await porId() }) : [];
+    if (seguimiento.length) {
+      bloque.append(chips(textos.sigue, seguimiento.map((s) => ({ texto: s.texto, datos: s.nodo ? { nodo: s.nodo } : { q: s.q } }))));
     }
     return bloque;
   }
@@ -248,7 +252,7 @@ export function crearRender({ log, datos, opciones, ruta = () => [] }) {
     },
 
     nodo(id, op) {
-      return responder(() => bloqueNodo(id), op);
+      return responder(() => bloqueNodo(id, { vistos: op?.vistos ?? [] }), op);
     },
 
     opciones(ids, op) {

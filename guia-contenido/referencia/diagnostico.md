@@ -1,7 +1,7 @@
 # Leer `evaluar` y corregir
 
 ```
-Validación: top-1 89.8% · top-3 95.9% · MRR 0.925 · prec. alta 100.0% (42.5% en alta) · fuga 0.0% · falso rechazo 4.5% · cumple
+Validación: top-1 91.3% · top-3 97.8% · MRR 0.942 · prec. alta 100.0% (41.4% en alta) · fuga 0.0% · falso rechazo 2.4% · cumple
 ...
 Errores en validación (6):
   [coloquial] "q onda con los respaldos" → media hosting, seguridad (esperado respaldos)
@@ -34,11 +34,19 @@ local al más general.
 | `ambito: general` en una consulta sobre el sitio | falta la marca u oferta | agregar a `ambito.marcas` u `oferta` |
 | general respondida con un nodo (fuga) | la fórmula no está en `genericas`, o una palabra de `oferta`/`necesidad` la marca como propia | agregar la fórmula; quitar la palabra ambigua |
 | tema que se deriva respondido con un nodo | falta en `ambito.derivar` | agregarlo (y a `derivar_salvo` lo que no debe derivarse) |
-| tipeo que no encuentra el nodo | palabra de menos de 4 letras o muy distinta | agregar la variante al `diccionario` |
+| tipeo que no encuentra el nodo | palabra de menos de 5 letras, más de una errata en 5 a 8 letras o más de dos desde 9 | agregar la variante al `diccionario` |
 | zona alta incorrecta | dos nodos muy parecidos y uno gana por poco | diferenciar los nodos; después `calibrar` |
 
 Después de cada ronda de cambios: `validar`, `evaluar`. Cuando no queden correcciones de contenido
 evidentes, `calibrar --escribir` y `evaluar` de nuevo.
+
+## Calibrar: falso rechazo frente a fuga
+
+`calibrar` imprime, para cada umbral `Cm` (cobertura mínima de la zona media), el falso rechazo y la
+fuga del mejor candidato en ajuste y en validación, y marca el elegido. Subir `Cm` manda más consultas a
+contacto: baja la fuga y sube el falso rechazo. `calibrar` descarta primero los umbrales que dejan el
+falso rechazo de **validación** sobre el máximo (5 % por defecto; `--max-falso-rechazo 3%` lo cambia).
+Si ninguno lo cumple, lo dice: el problema es de contenido, no de umbrales.
 
 ## Cuándo parar
 

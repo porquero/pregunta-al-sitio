@@ -26,7 +26,13 @@ consultas:
 | `necesidad` | el visitante cuenta su problema; esperan el nodo pertinente | 15 |
 | `ajena` | saludos, spam, sin sentido | 10 |
 | `fuera` | temas que el sitio decide no responder (empleo, precios no publicados); esperan `contacto` | según el sitio |
-| `seguimiento` | consulta que solo tiene sentido después de otra; lleva `contexto` | opcional |
+| `seguimiento` | consulta que solo tiene sentido después de otra; lleva `contexto`. **No entra en las métricas** | opcional |
+
+Las consultas `seguimiento` quedan fuera de las métricas de `evaluar` y `calibrar`. El chat responde cada
+consulta sin mirar el nodo anterior: dar peso al contexto haría acertar estas consultas, pero con Playa
+cambiaba el primer resultado del 2,4 % de las demás cuando el nodo anterior no tenía relación, y `evaluar`
+no puede medir ese costo. `evaluar` informa su acierto aparte ("Seguimiento … acierto"); sirven para ver
+si una pregunta elíptica ("¿y cuánto dura?") se entiende sola.
 
 Total: al menos 150. `evaluar` avisa si faltan consultas en total, generales, de frontera, de necesidad
 o ajenas, y si hay nodos sin ninguna consulta. Los mínimos de coloquial, tipeo y múltiple los cuidas tú.

@@ -24,7 +24,7 @@ export function dominiosDe(sitio) {
   const valores = sitio === undefined || sitio === null ? [] : [].concat(sitio);
   return valores
     .map((v) => String(v).trim().toLowerCase().replace(/\*/g, '').replace(/^[a-z]+:\/\//, '').split(/[/?#:]/)[0].replace(/^www\./, '').replace(/^\.+|\.+$/g, ''))
-    .filter(Boolean);
+    .filter((d) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d)); // Descarta marcadores como "[REDACTAR …]".
 }
 
 /**
@@ -44,6 +44,21 @@ export function crearFiltroUrl(dominios = []) {
     }
     return dominios.some((d) => host === d || host.endsWith(`.${d}`)) ? u : null;
   };
+}
+
+/** Dominio más frecuente entre las URL absolutas (sin "www."), o null. */
+export function dominioFrecuente(urls) {
+  const cuenta = new Map();
+  for (const u of urls) {
+    if (!/^https?:\/\//i.test(u ?? '')) continue;
+    try {
+      const host = new URL(u).hostname.toLowerCase().replace(/^www\./, '');
+      cuenta.set(host, (cuenta.get(host) ?? 0) + 1);
+    } catch {
+      // URL inválida: validar la informa.
+    }
+  }
+  return [...cuenta].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
 }
 
 function formato(escapado) {
@@ -70,7 +85,7 @@ export const textoVisible = (md) => String(md ?? '').replace(ENLACE_MD, '$1');
 const PROTEGIDO = /`[^`]+`|\*\*[^*]+\*\*|(?<![*\w])\*[^*\s][^*]*\*/gu;
 
 /** Minúsculas y sin tildes, carácter a carácter: conserva las posiciones del texto original. */
-const plegar = (t) => [...t].map((c) => (c.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()[0] ?? c)).join('');
+export const plegar = (t) => [...t].map((c) => (c.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()[0] ?? c)).join('');
 const escaparRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
@@ -78,7 +93,7 @@ const escaparRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  *   nombres  [{ nombre, id, enlace }]: los nombres enlazables de cada nodo del chat
  *   max      autoenlaces por respuesta
  *   destino  'nodo' (por defecto) abre el nodo en el chat; 'enlace' usa el enlace del nodo si `url` lo
- *            permite y, si no, también abre el nodo
+ *            permite y, si no, deja la mención como texto (un enlace "#" no lleva a ninguna parte)
  *   url      filtro de URL (crearFiltroUrl); por defecto urlSegura
  * Devuelve una función (texto plano, id del nodo, estado) → HTML, o null si no hay nombres.
  */
@@ -94,8 +109,9 @@ export function crearAutoenlace({ nombres = [], max = 5, destino = null, url: fi
   const re = new RegExp(`(?<![\\p{L}\\p{N}])(?:${claves.map(escaparRe).join('|')})(?![\\p{L}\\p{N}])`, 'gu');
 
   const enlace = (n, etiqueta) => {
-    const url = destino === 'enlace' ? filtro(n.enlace) : null;
-    return url ? `<a href="${escapar(url)}">${etiqueta}</a>` : enlaceNodo(n.id, etiqueta);
+    if (destino !== 'enlace') return enlaceNodo(n.id, etiqueta);
+    const url = filtro(n.enlace);
+    return url ? `<a href="${escapar(url)}">${etiqueta}</a>` : null;
   };
 
   return (texto, propio, estado) => {
@@ -105,9 +121,11 @@ export function crearAutoenlace({ nombres = [], max = 5, destino = null, url: fi
       const n = porNombre.get(m[0]);
       // El propio nodo y los ya enlazados consumen la mención sin enlazarla.
       if (n.id === propio || estado.enlazados.has(n.id) || estado.autoenlaces >= max) continue;
+      const html = enlace(n, escapar(texto.slice(m.index, m.index + m[0].length)));
+      if (!html) continue; // Sin destino: queda como texto.
       estado.enlazados.add(n.id);
       estado.autoenlaces += 1;
-      salida += escapar(texto.slice(desde, m.index)) + enlace(n, escapar(texto.slice(m.index, m.index + m[0].length)));
+      salida += escapar(texto.slice(desde, m.index)) + html;
       desde = m.index + m[0].length;
     }
     return salida + escapar(texto.slice(desde));

@@ -5,7 +5,7 @@
 import { gzipSync } from 'node:zlib';
 import { performance } from 'node:perf_hooks';
 import { crearResolver, zonaDe } from '../../src/motor/resolver.js';
-import { particion, esperaContacto } from './datos.mjs';
+import { particion, esperaContacto, medibles, SIN_METRICAS } from './datos.mjs';
 import { metricas, filasDe } from './metricas.mjs';
 
 export const FACTOR_MOVIL = 4; // estimación: CPU de un teléfono de gama media frente a un PC de desarrollo
@@ -27,9 +27,13 @@ function medir(datos, consultas) {
   return { carga, consulta, indice: Buffer.byteLength(json), indiceGz: gzipSync(json).length };
 }
 
-export function evaluar(datos, consultas, { medicion = true } = {}) {
+export function evaluar(datos, todas, { medicion = true } = {}) {
   const r = crearResolver(datos);
+  const consultas = medibles(todas);
   const { ajuste, validacion } = particion(consultas);
+  // Seguimiento: fuera de las métricas; se informa el acierto sin contexto, como responde el chat.
+  const seguimiento = todas.filter((c) => SIN_METRICAS.includes(c.tipo));
+  const filasS = filasDe(r, seguimiento);
   const filasV = filasDe(r, validacion);
   const filasA = filasDe(r, ajuste);
   // Fuga si el detector de ámbito no existiera: solo decide el puntaje.
@@ -51,7 +55,8 @@ export function evaluar(datos, consultas, { medicion = true } = {}) {
     version: datos.version,
     config: r.config,
     escala: r.escala,
-    tamanos: { ajuste: ajuste.length, validacion: validacion.length },
+    tamanos: { ajuste: ajuste.length, validacion: validacion.length, seguimiento: seguimiento.length },
+    seguimiento: { n: seguimiento.length, acierto: filasS.filter((f) => !esError(f)).length / (seguimiento.length || 1), errores: filasS.filter(esError).map((f) => ({ ...detalle(f), contexto: f.c.contexto })) },
     validacion: metricas(filasV),
     ajuste: metricas(filasA),
     validacionPorTipo: Object.fromEntries(

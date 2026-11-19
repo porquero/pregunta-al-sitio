@@ -25,7 +25,12 @@ test('iniciar crea un sitio en borrador que pasa validar y build', () => {
 
   const { errores, avisos } = validarSitio(dir);
   assert.deepEqual(errores, []);
-  assert.deepEqual(avisos.sort(), ['contacto: 1 [REDACTAR] pendiente(s)', 'inicio: 1 [REDACTAR] pendiente(s)']);
+  assert.deepEqual(avisos.sort(), [
+    'contacto: 1 [REDACTAR] pendiente(s)',
+    'inicio: 1 [REDACTAR] pendiente(s)',
+    'inicio: una sola arista saliente (con dos o más los chips varían)',
+    'sitio.yaml: completa sitio con el dominio principal (misitio.cl)',
+  ]);
 
   assert.equal(construirIndice(dir).indice.nodos.length, 0, 'sin aprobados, el índice va vacío');
   const indice = construirIndice(dir, { borradores: true }).indice;

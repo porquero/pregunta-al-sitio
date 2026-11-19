@@ -80,7 +80,7 @@ pregunta-al-sitio build contenido -o public/indice.json --widget
 
 ```html
 <script src="/pregunta-al-sitio.js" data-indice="/indice.json"
-        data-contacto-enlace="https://wa.me/56900000000?text={mensaje}" defer></script>
+        data-contacto-enlace="https://wa.me/TU-NUMERO?text={mensaje}" defer></script>
 ```
 
 Cada vez que cambie el contenido del sitio, actualiza las fuentes, pide al agente que actualice los
@@ -111,7 +111,12 @@ Opciones como atributos `data-*` del script, o en `window.PreguntaAlSitioConfig`
 | `sinRespuesta` | `data-sin-respuesta` | URL que recibe `{ tokens }` de las consultas sin respuesta |
 | `textos` | — | reemplaza cualquier texto de la interfaz (ver `src/widget/opciones.js`) |
 
-Sin opción de contacto, las consultas sin respuesta muestran solo el nodo `contacto`.
+Sin opción de contacto, las consultas sin respuesta muestran solo el nodo `contacto`. Si el enlace de
+contacto conserva el número de ejemplo (`TU-NUMERO`), el widget lo avisa en la consola del navegador.
+
+Los chips de seguimiento no repiten nodos que la persona ya vio en la conversación: si un nodo no declara
+`chips`, se completan con los destinos de sus otras aristas, y el nodo anterior solo vuelve si no queda
+otra opción.
 
 El webhook recibe `{ mensaje, nombre, email, consentimiento, ruta, pagina, indice, fecha }`; `ruta`
 son los ids de los nodos que la persona vio. El resto de la conversación no sale del navegador.
@@ -168,8 +173,10 @@ El chat no debe sacar al visitante del sitio. `sitio` en `sitio.yaml` es el domi
 (`sitio: misitio.cl`; acepta `https://www.misitio.cl`, `*misitio.cl*` o una lista). Al armar el
 índice, `build` deja en las respuestas solo los enlaces a ese dominio o a sus subdominios, con
 cualquier ruta, más las rutas relativas, `mailto:` y `tel:`. El resto se omite: un `[texto](url)`
-queda como texto y el "Ver más", el botón de la tarjeta o el enlace de un ítem desaparecen. Sin
-`sitio`, solo quedan las rutas relativas. `validar` avisa cada enlace que se omitirá.
+queda como texto y el "Ver más", el botón de la tarjeta o el enlace de un ítem desaparecen. `build`
+informa cuántos enlaces omitió y `validar` los lista. Sin `sitio`, `build` y `validar` usan el dominio
+más frecuente en los `enlace` de los nodos y lo avisan; si no hay URL absolutas, solo quedan las rutas
+relativas.
 
 ### Enlaces entre nodos
 
@@ -205,13 +212,25 @@ El detalle de cada campo, del diccionario, del ámbito y del set de preguntas es
 | `iniciar <carpeta> --nombre "…" --sitio <dominio>` | crea la carpeta de contenido con plantillas; no sobrescribe |
 | `skill [carpeta]` | copia la guía a `<carpeta>/.claude/skills/pregunta-al-sitio-contenido` |
 | `validar <carpeta>` | revisa los nodos: estructura y reglas de estilo de `sitio.yaml > validar`; sale con 1 si hay errores |
-| `build <carpeta> -o <ruta> [--widget]` | arma `indice.json` con los nodos aprobados; `--widget` copia `pregunta-al-sitio.js` al lado |
+| `build <carpeta> -o <ruta> [--widget]` | arma `indice.json` con los nodos aprobados e informa los enlaces omitidos; `--widget` copia `pregunta-al-sitio.js` al lado (en el repo lo empaqueta antes; instalado, falla si `dist/` está viejo) |
 | `evaluar <carpeta>` | revisa `preguntas.yaml` y mide el chat; muestra los errores de ajuste y de validación |
-| `calibrar <carpeta> --escribir` | elige parámetros y umbrales del buscador y los guarda en `sitio.yaml` |
+| `calibrar <carpeta> --escribir [--max-falso-rechazo 5%]` | elige parámetros y umbrales del buscador y los guarda en `sitio.yaml`; muestra el compromiso entre falso rechazo y fuga por umbral |
+| `cobertura <carpeta> --fuentes <fuentes>` | lista las fuentes con línea `URL:` sin un nodo cuyo `enlace` sea esa URL; sale con 1 si hay |
 
 `build`, `evaluar` y `calibrar` aceptan `--borradores` para incluir los nodos sin aprobar. Objetivos de
 `evaluar`: top-3 ≥ 90 %, precisión en zona alta ≥ 95 %, fuga de conocimiento general ≤ 3 % y falso
-rechazo ≤ 5 %.
+rechazo ≤ 5 %. Las consultas de tipo `seguimiento` no entran en las métricas (el chat responde sin el
+contexto de la conversación); `evaluar` informa su acierto aparte.
+
+**Regla de cobertura: una fuente con `URL:` es un nodo.** Cada archivo de `fuentes/` con una línea
+`URL: https://…` es una página publicada y lleva al menos un nodo con `enlace` igual a esa URL (una ruta
+relativa vale si la URL es del dominio de `sitio`). Las excepciones, duplicados exactos o páginas que se
+decidió no cubrir, van en `sitio.yaml`:
+
+```yaml
+cobertura:
+  excluir: [https://misitio.cl/tours-copia]
+```
 
 ## Motor
 
@@ -233,8 +252,8 @@ r.resolver('¿Tienen hosting?');
 Node 20 o superior. `npm install` y `npm test`. El fixture de referencia es Playa SPA
 (`tests/fixtures/playa`); después de cambiar sus nodos, `node cli/bin.mjs build tests/fixtures/playa`.
 
-`npm run empaquetar` genera `dist/pregunta-al-sitio.js` (un solo archivo, sin dependencias) y
-`npm run dev` sirve `http://localhost:5178/dev/`, una página de prueba con el índice de Playa y un
+`npm run empaquetar` genera `dist/pregunta-al-sitio.js` (un solo archivo, sin dependencias); un test
+compara ese archivo con una compilación nueva de `src/` y falla si quedó viejo. `npm run dev` sirve `http://localhost:5178/dev/`, una página de prueba con el índice de Playa y un
 webhook de contacto que guarda los envíos en memoria.
 
 ## Licencia

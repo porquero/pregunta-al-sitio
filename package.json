@@ -30,7 +30,7 @@
     "validar": "node cli/bin.mjs validar",
     "evaluar": "node cli/bin.mjs evaluar",
     "calibrar": "node cli/bin.mjs calibrar",
-    "empaquetar": "esbuild src/widget/index.js --bundle --minify --format=iife --target=es2022 --legal-comments=none --outfile=dist/pregunta-al-sitio.js",
+    "empaquetar": "node cli/empaquetar.mjs",
     "dev": "node dev/servidor.mjs",
     "prepublishOnly": "npm run empaquetar && npm test"
   },

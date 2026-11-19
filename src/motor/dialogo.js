@@ -27,6 +27,34 @@ export function debeRegistrarse(resultado) {
 
 export const LARGO_MAXIMO = 200;
 
+const tituloCorto = (n) => String(n.titulo ?? n.id).split(',')[0].trim();
+
+/**
+ * Chips de seguimiento de un nodo según la conversación. Quita los que llevan a un nodo ya mostrado en la
+ * sesión (y al propio nodo). Si el nodo no declara chips, completa con los destinos de sus aristas, de mayor
+ * a menor peso, hasta tener tantos como antes. El nodo de origen (el mostrado justo antes) solo vuelve
+ * si no queda ninguna alternativa. Los chips que consultan un texto (sin nodo) se conservan.
+ *   nodo    nodo del índice ({ id, seguimiento, chips, aristas })
+ *   vistos  ids de los nodos mostrados antes, en orden
+ *   porId   Map id → nodo del índice
+ */
+export function chipsSeguimiento(nodo, { vistos = [], porId = new Map() } = {}) {
+  const base = nodo.seguimiento ?? [];
+  const excluir = new Set([...vistos, nodo.id]);
+  const salida = base.filter((s) => !s.nodo || !excluir.has(s.nodo));
+  if (!(nodo.chips ?? []).length) {
+    for (const a of [...(nodo.aristas ?? [])].sort((x, y) => y.peso - x.peso)) {
+      if (salida.length >= base.length) break;
+      const destino = porId.get(a.a);
+      if (!destino || excluir.has(destino.id) || salida.some((s) => s.nodo === destino.id)) continue;
+      salida.push({ texto: tituloCorto(destino), nodo: destino.id });
+    }
+  }
+  if (salida.length) return salida;
+  const origen = vistos.at(-1);
+  return base.filter((s) => s.nodo === origen);
+}
+
 /**
  * Controlador del diálogo. Las interacciones se encolan: una respuesta termina de mostrarse antes
  * de procesar la siguiente, aunque el usuario pulse varios chips seguidos.
@@ -42,7 +70,14 @@ export function crearDialogo({ obtenerResolver, render, sesion, registrarSinResp
     return cola;
   };
 
-  const mostrar = (evento, opciones) => render[evento.tipo](evento.ref, opciones);
+  // Nodos mostrados en la conversación, en orden: el render los usa para no repetir chips.
+  const vistos = [];
+  const mostrar = (evento, opciones) => {
+    if (evento.tipo !== 'nodo') return render[evento.tipo](evento.ref, opciones);
+    const previos = [...vistos];
+    if (vistos.at(-1) !== evento.ref) vistos.push(evento.ref);
+    return render.nodo(evento.ref, { ...opciones, vistos: previos });
+  };
   const registrar = (evento) => {
     sesion.agregar(evento.tipo, evento.ref);
     return mostrar(evento, { animar: true });

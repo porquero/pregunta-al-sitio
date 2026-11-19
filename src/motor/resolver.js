@@ -32,6 +32,29 @@ export const OPCIONES_D = {
   frase: 0.5, // bonificación por par de términos consecutivos presente en un campo, en idf promedio
 };
 
+/** Errores de tipeo que se corrigen por distancia de edición según el largo del término. */
+export const erratasPermitidas = (largo) => (largo >= 9 ? 2 : largo >= 5 ? 1 : 0);
+
+/**
+ * Distancia de Levenshtein entre a y b, o max + 1 en cuanto se sabe que supera max.
+ * Sustituir, insertar o borrar una letra cuesta 1.
+ */
+export function distanciaEdicion(a, b, max = Infinity) {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let previa = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const fila = [i];
+    let minimo = i;
+    for (let j = 1; j <= b.length; j++) {
+      fila[j] = Math.min(previa[j] + 1, fila[j - 1] + 1, previa[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (fila[j] < minimo) minimo = fila[j];
+    }
+    if (minimo > max) return max + 1;
+    previa = fila;
+  }
+  return previa[b.length];
+}
+
 const textosDe = (n, campo) => (campo === 'titulo' ? [n.titulo] : n[campo] ?? []);
 
 /**
@@ -76,6 +99,13 @@ export function crearBM25F(nodos, opciones = {}, terminos = terminosBase) {
   const idf = new Map([...df].map(([t, d]) => [t, Math.log(1 + (N - d + 0.5) / (d + 0.5))]));
   const idfMax = Math.log(1 + (N - 0.5) / 1.5);
 
+  // Vocabulario por largo, para el cotejo por distancia de edición.
+  const porLargo = new Map();
+  for (const t of df.keys()) {
+    if (!porLargo.has(t.length)) porLargo.set(t.length, []);
+    porLargo.get(t.length).push(t);
+  }
+
   // Índice de trigramas del vocabulario para corregir errores de tipeo.
   const porTrigrama = new Map();
   for (const t of df.keys()) {
@@ -86,9 +116,26 @@ export function crearBM25F(nodos, opciones = {}, terminos = terminosBase) {
     }
   }
 
-  /** Término de la consulta → [[término del vocabulario, similitud]]. */
+  /**
+   * Término de la consulta → [[término del vocabulario, similitud]].
+   * Orden: exacto; distancia de edición (1 en términos de 5 a 8 letras, 2 desde 9); trigramas.
+   */
   function expandir(q) {
     if (df.has(q)) return [[q, 1]];
+    const k = erratasPermitidas(q.length);
+    if (k > 0) {
+      let mejor = null;
+      let distancia = k + 1;
+      for (let largo = q.length - k; largo <= q.length + k; largo++) {
+        for (const t of porLargo.get(largo) ?? []) {
+          const d = distanciaEdicion(q, t, Math.min(distancia, k));
+          if (d > k) continue;
+          // Desempate: el término más frecuente en el sitio.
+          if (d < distancia || (d === distancia && df.get(t) > df.get(mejor))) [mejor, distancia] = [t, d];
+        }
+      }
+      if (mejor) return [[mejor, 1 - distancia / Math.max(q.length, mejor.length)]];
+    }
     if (q.length < 4) return [];
     const propios = new Set(trigramas(q));
     const comunes = new Map();

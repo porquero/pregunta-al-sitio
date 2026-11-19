@@ -31,7 +31,8 @@ Comandos (si `pregunta-al-sitio` no responde, prueba con `npx pregunta-al-sitio 
 pregunta-al-sitio iniciar contenido --nombre "Nombre del sitio" --sitio dominio.cl
 pregunta-al-sitio validar contenido
 pregunta-al-sitio evaluar contenido [--borradores]
-pregunta-al-sitio calibrar contenido --escribir [--borradores]
+pregunta-al-sitio calibrar contenido --escribir [--borradores] [--max-falso-rechazo 5%]
+pregunta-al-sitio cobertura contenido --fuentes fuentes
 pregunta-al-sitio build contenido -o public/indice.json --widget
 ```
 
@@ -67,10 +68,10 @@ Escribe `informes/mapa-de-nodos.md` con una tabla: id, tipo, título, enlace, fo
 - Un nodo por tema que un visitante preguntaría por separado. Un sitio pequeño suele quedar con 10 a 20
   nodos; uno de servicios, con 25 a 40.
 - Siempre: `inicio` (tipo `saludo`) y `contacto`.
-- Siempre: un nodo por cada fuente con `URL:` (regla de la etapa 1). Antes de pedir la revisión, corre
-  `node .claude/skills/pregunta-al-sitio-contenido/cobertura-url.mjs` sobre el mapa ya escrito en nodos, o
-  cruza a mano la columna `enlace` con las URL de las fuentes. Toda fuente sin nodo se lista en el mapa, en
-  una sección "Fuentes sin nodo" con el motivo permitido (duplicado exacto o exclusión pedida).
+- Siempre: un nodo por cada fuente con `URL:` (regla de la etapa 1). Antes de pedir la revisión, cruza la
+  columna `enlace` del mapa con las URL de las fuentes. Toda fuente sin nodo se lista en el mapa, en una
+  sección "Fuentes sin nodo" con el motivo permitido (duplicado exacto o exclusión pedida); al escribir los
+  nodos, esas URL van a `sitio.yaml > cobertura.excluir`.
 - Si una fuente profundiza un tema, propón dos nodos (resumen y detalle) unidos por una arista
   `profundiza`.
 
@@ -94,8 +95,10 @@ Con el mapa aprobado, escribe un archivo por nodo en `nodos/`. Reglas de campos 
 - Un dato que falta se marca `[REDACTAR …]` y el nodo queda en `estado: borrador`.
 - Todo nodo nace en `borrador`; lo aprueba la persona.
 
-Corre `validar` hasta que no queden errores y `cobertura-url.mjs` hasta que no quede ninguna fuente con
-`URL:` sin nodo.
+Corre `validar` hasta que no queden errores y `pregunta-al-sitio cobertura contenido --fuentes fuentes`
+hasta que salga sin fuentes sin nodo (código 0). Revisa también los avisos de `validar` sobre aristas
+(recíprocas, una sola saliente, nodos que reciben aristas de más del 15 % de los nodos) y, si el sitio usa
+`autoenlazar`, sobre nombres enlazables comunes.
 
 ### 4. Diccionario y ámbito
 
@@ -131,7 +134,10 @@ Reglas de esta etapa:
   se corrige si la etiqueta estaba mal, y lo dices.
 - Mira los errores de **ajuste** para corregir. La validación es el examen: no agregues a los nodos
   frases copiadas de consultas de validación.
-- Cuando el contenido esté estable, `calibrar --escribir` y `evaluar` de nuevo.
+- Cuando el contenido esté estable, `calibrar --escribir` y `evaluar` de nuevo. `calibrar` muestra el
+  compromiso entre falso rechazo y fuga para cada umbral `Cm`; si la persona prefiere rechazar menos,
+  usa `--max-falso-rechazo` (por ejemplo `3%`).
+- Las consultas `seguimiento` no entran en las métricas: `evaluar` informa su acierto aparte.
 
 ### 7. Entrega — Alto
 

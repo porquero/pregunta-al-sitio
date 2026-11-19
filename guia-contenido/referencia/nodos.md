@@ -55,12 +55,27 @@ estado: borrador
 | `keywords` | sí | términos que identifican el tema |
 | `sinonimos` | no | otras formas de nombrar el tema, propias de este nodo. Con `+` delante (`+Casona`) también es un nombre enlazable |
 | `alias` | no | nombres enlazables que no son sinónimos de búsqueda (ver [Enlaces entre nodos](#enlaces-entre-nodos)) |
+| `autoenlazar` | no | `false` excluye el nodo del autoenlace: sus nombres no se enlazan en otras respuestas |
 | `aristas` | no | relaciones con otros nodos: `{a, tipo, peso}` |
 | `chips` | no | sugerencias después de la respuesta: texto (se pregunta al chat) o `{texto, a}` (abre el nodo `a`). Sin chips, el widget ofrece los destinos de las tres aristas de mayor peso |
 | `publicacion` | no | `{ chat: false }` deja el nodo fuera del chat |
 | `derivacion` | en contacto | texto que precede al contacto cuando la consulta no tiene respuesta |
 | `estado` | sí | `borrador` o `aprobado`; `build` publica solo los aprobados |
 | `fuente` | recomendado | archivo y sección de donde sale el texto |
+
+## Tarjeta: claves admitidas
+
+`validar` da error si un objeto de la tarjeta trae otra clave o una clave sin valor:
+
+| Lugar | Claves |
+|---|---|
+| `tarjeta.items[*]` (cuando son objetos) | `titulo`, `texto`, `ruta` |
+| `tarjeta.cifras[*]` | `numero`, `etiqueta` |
+| `tarjeta.cta` | `texto`, `destino` |
+
+En YAML, una coma o dos puntos dentro de `{ … }` parten el valor: `{ titulo: Duración, texto: 2,5 horas }`
+se lee como texto `2` y una clave `5 horas` sin valor. Entrecomilla esos valores:
+`{ titulo: Duración, texto: "2,5 horas" }`.
 
 ## Cómo dividir en nodos
 
@@ -131,7 +146,11 @@ solapados gana el más largo, y hay un máximo de autoenlaces por respuesta.
 |---|---|---|
 | `autoenlazar` | `false` | enciende el autoenlace |
 | `autoenlazar_max` | `5` | autoenlaces por respuesta |
-| `autoenlazar_destino` | `nodo` | `nodo` abre el nodo en el chat; `enlace` usa el `enlace` del nodo si es del sitio y, si no, también abre el nodo |
+| `autoenlazar_destino` | `nodo` | `nodo` abre el nodo en el chat; `enlace` usa el `enlace` del nodo si es del sitio y, si no, deja la mención como texto (`validar` avisa esos nodos) |
+
+Con `autoenlazar: true`, `validar` avisa los nombres enlazables que enlazarían de más: una sola palabra
+común (una palabra vacía del buscador o una que usan 3 o más respuestas) o un nombre que aparece en las
+respuestas de más de 10 nodos. Para excluir un nodo, `autoenlazar: false` en su frontmatter.
 
 Cuidado con los títulos que empiezan por una palabra común: `Seguridad, respaldo y soporte` se
 reconoce como "Seguridad" y enlazaría cualquier mención de seguridad. Reescribe la parte antes de la

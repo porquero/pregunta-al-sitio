@@ -38,6 +38,13 @@ export function particion(consultas) {
   return { ajuste, validacion };
 }
 
+/**
+ * Consultas que entran en las métricas. Las de tipo seguimiento ("¿y cuánto dura?") dependen del nodo
+ * mostrado antes, y el resolvedor responde cada consulta sin contexto: se informan aparte.
+ */
+export const SIN_METRICAS = ['seguimiento'];
+export const medibles = (consultas) => consultas.filter((c) => !SIN_METRICAS.includes(c.tipo));
+
 /** Una consulta espera contacto si su única respuesta aceptable es contacto. */
 export const esperaContacto = (c) => c.esperado.length === 1 && c.esperado[0] === 'contacto';
 

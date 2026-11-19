@@ -53,6 +53,8 @@ export function parsearNodo(contenido, archivo = 'nodo.md') {
     // Un sinónimo con prefijo + también es un nombre enlazable del nodo (ver nombresEnlazables).
     sinonimos: lista(d.sinonimos).map((s) => String(s).replace(/^\+\s*/, '')),
     alias: lista(d.alias).map(String),
+    // autoenlazar: false excluye el nodo del autoenlace: sus nombres no se enlazan en otras respuestas.
+    autoenlazar: d.autoenlazar !== false,
     sinonimosEnlazables: lista(d.sinonimos).map(String).filter((s) => s.startsWith('+')).map((s) => s.slice(1).trim()),
     aristas: lista(d.aristas).map((a) => ({ a: String(a?.a ?? ''), tipo: String(a?.tipo ?? 'profundiza'), peso: Number(a?.peso ?? 0.5) })),
     // Un chip es un texto que se consulta al motor, o { texto, a } que abre el nodo "a" directamente.

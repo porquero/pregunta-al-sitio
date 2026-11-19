@@ -3,7 +3,7 @@
 // conserva las métricas que tenía en Playa.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { crearResolver } from '../../src/motor/resolver.js';
+import { crearResolver, crearBM25F, distanciaEdicion, erratasPermitidas } from '../../src/motor/resolver.js';
 import { cargarIndice, cargarPreguntas, particion } from '../../cli/evaluacion/datos.mjs';
 import { metricas, filasDe } from '../../cli/evaluacion/metricas.mjs';
 import { MOTOR, ZONAS } from '../../src/motor/config.js';
@@ -117,4 +117,30 @@ test('la zona media no ofrece el saludo si hay otras opciones', () => {
 test('solo devuelve tokens normalizados para registrar consultas sin respuesta', () => {
   const res = r.resolver('¿Cuánto cuesta el Hosting de ustedes?');
   for (const t of res.terminos) assert.match(t, /^[a-z0-9]+$/);
+});
+
+test('distancia de edición: Levenshtein con corte', () => {
+  assert.equal(distanciaEdicion('wotell', 'wotel'), 1);
+  assert.equal(distanciaEdicion('automatisacion', 'automatizacion'), 1);
+  assert.equal(distanciaEdicion('capasitan', 'capacitan'), 1);
+  assert.equal(distanciaEdicion('hosting', 'hostinj'), 1);
+  assert.equal(distanciaEdicion('abc', 'xyz'), 3);
+  assert.equal(distanciaEdicion('abcdef', 'uvwxyz', 1), 2, 'supera el máximo: max + 1');
+  assert.deepEqual([4, 5, 8, 9, 14].map(erratasPermitidas), [0, 1, 1, 2, 2]);
+});
+
+test('erratas: cotejo por distancia de edición tras el exacto', () => {
+  const nodos = [
+    { id: 'wotel', titulo: 'Wotel', preguntas: ['¿Qué es Wotel?'], keywords: ['wotel', 'reservas'], sinonimos: [] },
+    { id: 'hoteles', titulo: 'Hoteles', preguntas: ['¿Trabajan con hoteles?'], keywords: ['hotel', 'hoteles', 'disponibilidad'], sinonimos: [] },
+    { id: 'otro', titulo: 'Otro', preguntas: ['¿Algo más?'], keywords: ['soporte'], sinonimos: [] },
+  ];
+  const m = crearBM25F(nodos);
+  // 1 errata en 6 letras: "wotell" → wotel, aunque "hotel" (más frecuente) esté a distancia 2.
+  assert.equal(m.buscar('wotell')[0]?.id, 'wotel');
+  // 2 erratas desde 9 letras.
+  assert.equal(m.buscar('dysponivilidad')[0]?.id, 'hoteles');
+  assert.equal(m.buscar('dysponivilidad')[0]?.cobertura, 0.8, 'similitud 1 - 2/10');
+  // Con menos de 4 letras no se corrige (ni distancia ni trigramas).
+  assert.equal(m.buscar('sop').length, 0);
 });

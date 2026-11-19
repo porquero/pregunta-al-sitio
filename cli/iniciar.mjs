@@ -40,8 +40,8 @@ nombre: ${nombre}
 
 # Dominio principal del sitio (misitio.cl). Las respuestas del chat solo enlazan a él y a sus
 # subdominios, con cualquier ruta; los enlaces a otros sitios se omiten para que el visitante no salga.
-# Sin dominio, solo quedan las rutas relativas (/contacto). Admite una lista.
-sitio: ${dominio ?? ''}
+# Sin dominio, build usa el más frecuente en los enlace de los nodos y lo avisa. Admite una lista.
+sitio: ${dominio ?? '"[REDACTAR dominio principal, por ejemplo misitio.cl]"'}
 
 # Parámetros del motor y umbrales de zona. Los escribe \`pregunta-al-sitio calibrar --escribir\`.
 config: {}

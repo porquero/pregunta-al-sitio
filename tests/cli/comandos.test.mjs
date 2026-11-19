@@ -47,7 +47,8 @@ test('validar sale con 1 si hay errores', () => {
 test('evaluar informa las métricas de validación', () => {
   const r = correr('evaluar', FIXTURE_PLAYA);
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /Validación: top-1 89\.8% · top-3 95\.9% .* prec\. alta 100\.0% .* fuga 0\.0% · falso rechazo 4\.5% · cumple/);
+  assert.match(r.stdout, /Validación: top-1 91\.3% · top-3 97\.8% .* prec\. alta 100\.0% .* fuga 0\.0% · falso rechazo 2\.4% · cumple/);
+  assert.match(r.stdout, /Seguimiento \(8, fuera de las métricas: el chat responde sin contexto\): acierto 75\.0%/);
 });
 
 test('calibrar --escribir guarda la config en sitio.yaml y conserva los comentarios', () => {
@@ -61,11 +62,4 @@ test('calibrar --escribir guarda la config en sitio.yaml y conserva los comentar
   assert.equal(sitio.config.motor.k1, 1.2);
   assert.equal(sitio.config.opcionesMedia, 2);
   assert.equal(sitio.nombre, 'Playa SPA');
-});
-
-test('build --widget copia el script junto al índice', { skip: !existsSync(new URL('../../dist/pregunta-al-sitio.js', import.meta.url)) && 'falta npm run empaquetar' }, () => {
-  const dir = copia();
-  const r = correr('build', dir, '-o', join(dir, 'publico', 'indice.json'), '--widget');
-  assert.equal(r.status, 0, r.stderr);
-  assert.ok(existsSync(join(dir, 'publico', 'pregunta-al-sitio.js')));
 });

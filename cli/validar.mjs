@@ -13,8 +13,34 @@
 //   pendiente   marca de texto por redactar: error en un nodo aprobado, aviso en un borrador
 //   reglas      [{ patron, mensaje, nivel: error|aviso, campo: todo|respuesta|respuesta_y_cuerpo, sensible }]
 //               expresiones regulares propias del sitio; sin "sensible" no distinguen mayúsculas
-import { leerSitio, leerNodos, ESTADOS, FORMATOS } from './contenido/leer.mjs';
-import { idsEnlazados, textoVisible, ENLACE_MD, crearFiltroUrl, dominiosDe } from './contenido/html.mjs';
+import { leerSitio, leerNodos, nombresEnlazables, ESTADOS, FORMATOS } from './contenido/leer.mjs';
+import { idsEnlazados, textoVisible, ENLACE_MD, crearFiltroUrl, dominiosDe, dominioFrecuente, plegar } from './contenido/html.mjs';
+import { STOPWORDS } from '../src/motor/normalizar.js';
+
+/** Claves admitidas en los objetos de una tarjeta. */
+export const CLAVES_TARJETA = { items: ['titulo', 'texto', 'ruta'], cifras: ['numero', 'etiqueta'], cta: ['texto', 'destino'] };
+const ENTRECOMILLAR = 'si un valor lleva coma o dos puntos, entrecomíllalo: { titulo: A, texto: "2,5 horas" } (sin comillas se lee como texto "2" y una clave "5 horas")';
+
+/** Problemas de un objeto de tarjeta: claves desconocidas y valores nulos. */
+function clavesMal(objeto, admitidas) {
+  const problemas = [];
+  for (const [k, v] of Object.entries(objeto)) {
+    if (!admitidas.includes(k)) problemas.push(`clave '${k}' desconocida`);
+    else if (v === null || v === undefined) problemas.push(`'${k}' sin valor`);
+  }
+  return problemas;
+}
+
+const escaparRe = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Cantidad de textos que mencionan el nombre como palabra completa, sin tildes ni mayúsculas. */
+function menciones(nombre, textos) {
+  const re = new RegExp(`(?<![\\p{L}\\p{N}])${escaparRe(plegar(nombre.trim()))}(?![\\p{L}\\p{N}])`, 'u');
+  return textos.filter((x) => re.test(plegar(x))).length;
+}
+
+/** Umbrales de los avisos de aristas y nombres enlazables. */
+export const LIMITES = { concentracion: 0.15, mencionesNombre: 10, comunNombre: 3 };
 
 export const VALIDAR_D = {
   respuesta: { palabras_min: 40, palabras_max: 60, nombrar: null, nombrar_salvo: ['saludo'] },
@@ -66,7 +92,16 @@ export function validarNodos(nodos, sitio = {}, erroresLectura = []) {
     }
     porId.set(n.id, n);
   }
-  const dominios = dominiosDe(sitio.sitio);
+  let dominios = dominiosDe(sitio.sitio);
+  if (!dominios.length) {
+    // Igual que build: sin sitio, el dominio más frecuente en los enlace.
+    const inferido = dominioFrecuente(nodos.map((n) => n.enlace));
+    if (inferido) {
+      avisos.push(`sitio.yaml: falta sitio (dominio principal); build usará ${inferido}, el más frecuente en los enlace. Escríbelo.`);
+      dominios = [inferido];
+    }
+  }
+  if (String(sitio.sitio ?? '').includes(r.pendiente)) avisos.push('sitio.yaml: completa sitio con el dominio principal (misitio.cl)');
   const filtroUrl = crearFiltroUrl(dominios);
   if (sitio.autoenlazar_destino != null && !['enlace', 'nodo'].includes(sitio.autoenlazar_destino)) {
     errores.push(`sitio.yaml: autoenlazar_destino '${sitio.autoenlazar_destino}' inválido (enlace, nodo)`);
@@ -123,6 +158,21 @@ export function validarNodos(nodos, sitio = {}, erroresLectura = []) {
       if (!filtroUrl(u)) a(`enlace '${u}' fuera del sitio (${dominios.length ? dominios.join(', ') : 'falta sitio en sitio.yaml'}): se omite`);
     }
 
+    // Tarjeta: solo claves conocidas y sin valores nulos (un YAML sin comillas parte "2,5 horas").
+    const t = n.tarjeta ?? {};
+    for (const campo of ['items', 'cifras']) {
+      if (!Array.isArray(t[campo])) continue;
+      t[campo].forEach((x, i) => {
+        if (!x || typeof x !== 'object') return;
+        const p = clavesMal(x, CLAVES_TARJETA[campo]);
+        if (p.length) e(`tarjeta.${campo}[${i}]: ${p.join(', ')} (se esperan ${CLAVES_TARJETA[campo].join(', ')}); ${ENTRECOMILLAR}`);
+      });
+    }
+    if (t.cta && typeof t.cta === 'object') {
+      const p = clavesMal(t.cta, CLAVES_TARJETA.cta);
+      if (p.length) e(`tarjeta.cta: ${p.join(', ')} (se esperan ${CLAVES_TARJETA.cta.join(', ')}); ${ENTRECOMILLAR}`);
+    }
+
     for (const arista of n.aristas) {
       if (!porId.has(arista.a)) e(`arista hacia '${arista.a}', que no existe`);
       else if (arista.a === n.id) e('arista hacia sí mismo');
@@ -154,7 +204,59 @@ export function validarNodos(nodos, sitio = {}, erroresLectura = []) {
       if (regla.re.test(textos[regla.campo ?? 'todo'] ?? textos.todo)) (regla.nivel === 'aviso' ? a : e)(regla.mensaje ?? `coincide con /${regla.patron}/`);
     }
   }
+  avisos.push(...avisosGrafo([...porId.values()]), ...avisosAutoenlace([...porId.values()], sitio, filtroUrl));
   return { errores, avisos };
+}
+
+/**
+ * Aristas que empobrecen los chips: recíprocas (A ofrece B y B ofrece A), una sola saliente y nodos que
+ * reciben aristas de más del 15 % de los nodos (aparecerían en casi todas las respuestas). contacto queda
+ * fuera de este último: recibir llamados a la acción de muchos nodos es su función.
+ */
+export function avisosGrafo(nodos) {
+  const enChat = nodos.filter((n) => n.enChat);
+  const ids = new Set(enChat.map((n) => n.id));
+  const salientes = new Map(enChat.map((n) => [n.id, new Set(n.aristas.map((a) => a.a).filter((a) => ids.has(a) && a !== n.id))]));
+  const avisos = [];
+  for (const [id, destinos] of salientes) {
+    for (const d of destinos) if (id < d && salientes.get(d)?.has(id)) avisos.push(`${id}: arista recíproca con '${d}' (cada uno ofrece al otro y los chips rebotan)`);
+    if (destinos.size === 1) avisos.push(`${id}: una sola arista saliente (con dos o más los chips varían)`);
+  }
+  const limite = LIMITES.concentracion * enChat.length;
+  const entrantes = new Map();
+  for (const destinos of salientes.values()) for (const d of destinos) entrantes.set(d, (entrantes.get(d) ?? 0) + 1);
+  for (const [id, k] of entrantes) {
+    if (id !== 'contacto' && k > limite) avisos.push(`${id}: recibe aristas de ${k} de ${enChat.length} nodos (más del 15 %); se ofrecerá como chip en muchas respuestas`);
+  }
+  return avisos;
+}
+
+/**
+ * Con autoenlazar: nombres enlazables que enlazarían de más (una palabra común o mencionada en las
+ * respuestas de más de 10 nodos) y, con autoenlazar_destino: enlace, nodos sin enlace del sitio.
+ * Una palabra es común si es una palabra vacía o aparece en las respuestas de 3 o más nodos.
+ */
+export function avisosAutoenlace(nodos, sitio, filtroUrl) {
+  if (!sitio.autoenlazar) return [];
+  const enChat = nodos.filter((n) => n.enChat && n.autoenlazar !== false);
+  const avisos = [];
+  for (const n of enChat) {
+    const nombres = nombresEnlazables(n);
+    const otras = nodos.filter((x) => x.id !== n.id && x.enChat).map((x) => textoVisible(x.respuestaCorta));
+    for (const nombre of nombres) {
+      const k = menciones(nombre, otras);
+      const unaPalabra = !/\s/.test(nombre.trim());
+      if (k > LIMITES.mencionesNombre) {
+        avisos.push(`${n.id}: el nombre enlazable '${nombre}' aparece en las respuestas de ${k} nodos; cambia el título, quita el alias o usa autoenlazar: false`);
+      } else if (unaPalabra && (STOPWORDS.has(plegar(nombre.trim())) || k >= LIMITES.comunNombre)) {
+        avisos.push(`${n.id}: el nombre enlazable '${nombre}' es una palabra común (${k} respuestas la usan); cambia el título, quita el alias o usa autoenlazar: false`);
+      }
+    }
+    if (sitio.autoenlazar_destino === 'enlace' && nombres.length && !filtroUrl(n.enlace)) {
+      avisos.push(`${n.id}: sin enlace del sitio; con autoenlazar_destino: enlace, sus menciones quedan como texto`);
+    }
+  }
+  return avisos;
 }
 
 /** Lee y valida la carpeta de un sitio. */

@@ -1,7 +1,7 @@
 // build: contenido del sitio (sitio.yaml + nodos/*.md) → indice.json estático para el motor y el widget.
 import { createHash } from 'node:crypto';
 import { leerSitio, leerNodos, nombresEnlazables } from './contenido/leer.mjs';
-import { respuestaHtml, crearAutoenlace, crearFiltroUrl, dominiosDe } from './contenido/html.mjs';
+import { respuestaHtml, crearAutoenlace, crearFiltroUrl, dominiosDe, dominioFrecuente, urlSegura } from './contenido/html.mjs';
 
 const MAX_CHIPS = 4;
 const MAX_CHIPS_ARISTAS = 3;
@@ -30,7 +30,8 @@ function seguimientoDe(nodo, porId) {
 /**
  * Arma el índice a partir de la carpeta del sitio.
  * opciones.borradores incluye los nodos en estado borrador (para evaluar antes de aprobar).
- * Devuelve { indice, errores }; con errores de lectura el índice se arma igual con lo que se pudo leer.
+ * Devuelve { indice, errores, avisos, omitidos, dominios }; con errores de lectura el índice se arma
+ * igual con lo que se pudo leer. omitidos: enlaces quitados por estar fuera del sitio principal.
  */
 export function construirIndice(dir, { borradores = false } = {}) {
   const sitio = leerSitio(dir);
@@ -39,16 +40,31 @@ export function construirIndice(dir, { borradores = false } = {}) {
   const enChat = visibles.filter((n) => n.enChat);
   const porId = new Map(enChat.map((n) => [n.id, n]));
   // Las respuestas solo enlazan al sitio principal (sitio.yaml > sitio): el resto se omite.
-  const url = crearFiltroUrl(dominiosDe(sitio.sitio));
+  const avisos = [];
+  let dominios = dominiosDe(sitio.sitio);
+  if (!dominios.length) {
+    const inferido = dominioFrecuente(visibles.map((n) => n.enlace));
+    if (inferido) {
+      dominios = [inferido];
+      avisos.push(`sitio.yaml no define sitio: uso ${inferido}, el dominio más frecuente en los enlace de los nodos. Escríbelo en sitio.yaml.`);
+    }
+  }
+  const filtro = crearFiltroUrl(dominios);
+  let omitidos = 0;
+  const url = (u) => {
+    const r = filtro(u);
+    if (r === null && urlSegura(u)) omitidos += 1;
+    return r;
+  };
   const enlaces = {
     url,
     existe: (id) => porId.has(id),
     autoenlace: sitio.autoenlazar
       ? crearAutoenlace({
-          nombres: enChat.flatMap((n) => nombresEnlazables(n).map((nombre) => ({ nombre, id: n.id, enlace: n.enlace }))),
+          nombres: enChat.flatMap((n) => (n.autoenlazar === false ? [] : nombresEnlazables(n)).map((nombre) => ({ nombre, id: n.id, enlace: n.enlace }))),
           max: sitio.autoenlazar_max ?? 5,
           destino: sitio.autoenlazar_destino ?? null,
-          url,
+          url: filtro,
         })
       : null,
   };
@@ -81,5 +97,5 @@ export function construirIndice(dir, { borradores = false } = {}) {
     derivacion,
   };
   const version = createHash('sha256').update(JSON.stringify(cuerpo)).digest('hex').slice(0, 12);
-  return { indice: { version, ...cuerpo }, errores };
+  return { indice: { version, ...cuerpo }, errores, avisos, omitidos, dominios };
 }

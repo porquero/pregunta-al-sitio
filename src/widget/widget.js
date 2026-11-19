@@ -9,7 +9,7 @@ import { crearResolver } from '../motor/resolver.js';
 import { crearSesion, filtrarEventos, rutaVisitada } from '../motor/sesion.js';
 import { crearDialogo } from '../motor/dialogo.js';
 import { crearRender } from './render.js';
-import { normalizarOpciones, opcionesDeAtributos } from './opciones.js';
+import { normalizarOpciones, opcionesDeAtributos, avisoContacto } from './opciones.js';
 import { ESTILOS } from './estilos.js';
 import { accionDeClic } from './acciones.js';
 
@@ -50,6 +50,8 @@ export class PreguntaAlSitioElemento extends HTMLElement {
     if (this.#raiz) return;
     this.#opciones ??= normalizarOpciones(opcionesDeAtributos(this.dataset));
     const o = this.#opciones;
+    const aviso = avisoContacto(o.contacto);
+    if (aviso) console.warn(`pregunta-al-sitio: ${aviso}`);
     this.setAttribute('posicion', o.posicion);
     this.setAttribute('tema', o.tema);
     this.#raiz = this.attachShadow({ mode: 'open' });

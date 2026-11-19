@@ -6,7 +6,6 @@
 //   preguntas.yaml   set de evaluación (para evaluar y calibrar)
 import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { parseDocument } from 'yaml';
 import { construirIndice } from './build.mjs';
@@ -17,8 +16,8 @@ import { cargarIndice, cargarPreguntas } from './evaluacion/datos.mjs';
 import { cumple, resumen } from './evaluacion/metricas.mjs';
 import { revisarPreguntas } from './evaluacion/preguntas.mjs';
 import { iniciarSitio, instalarSkill } from './iniciar.mjs';
-
-const WIDGET = fileURLToPath(new URL('../dist/pregunta-al-sitio.js', import.meta.url));
+import { widgetAlDia } from './empaquetar.mjs';
+import { cobertura } from './cobertura.mjs';
 
 const AYUDA = `Uso: pregunta-al-sitio <comando> [carpeta] [opciones]
 
@@ -42,7 +41,11 @@ Comandos:
   calibrar  elige parámetros del motor y umbrales de zona con preguntas.yaml
               --preguntas <ruta>
               --escribir            guarda el resultado en la clave config de sitio.yaml
+              --max-falso-rechazo <n>  máximo de falso rechazo (0.05 o 5%; por defecto el objetivo, 5 %)
               --borradores
+  cobertura lista las fuentes con línea URL: sin un nodo cuyo enlace sea esa URL
+              --fuentes <carpeta>   carpeta de fuentes (por defecto fuentes/ junto a la carpeta)
+              Sale con código 1 si alguna fuente no tiene nodo.
 
 La carpeta por defecto es la actual.`;
 
@@ -57,10 +60,19 @@ const OPCIONES = {
   nombre: { type: 'string' },
   sitio: { type: 'string' },
   widget: { type: 'boolean', default: false },
+  fuentes: { type: 'string' },
+  'max-falso-rechazo': { type: 'string' },
   ayuda: { type: 'boolean', short: 'h', default: false },
 };
 
 const p = (x) => `${(x * 100).toFixed(1)}%`;
+
+/** "5%", "5" o "0.05" → 0.05. */
+function porcentaje(texto) {
+  const n = Number(String(texto).replace('%', '').replace(',', '.').trim());
+  if (!Number.isFinite(n) || n < 0) throw new Error(`valor inválido: ${texto}`);
+  return String(texto).includes('%') || n > 1 ? n / 100 : n;
+}
 
 function indiceDe(dir, valores) {
   if (valores.indice) return cargarIndice(valores.indice);
@@ -70,6 +82,18 @@ function indiceDe(dir, valores) {
 }
 
 const comandos = {
+  cobertura(dir, v) {
+    const carpeta = v.fuentes ?? join(dir, '..', 'fuentes');
+    const { fuentes, sinNodo } = cobertura(dir, carpeta);
+    for (const s of sinNodo) console.log(`sin nodo  ${s.url}  (${s.archivo})`);
+    const excluidas = fuentes.filter((x) => x.excluida).length;
+    console.log(`\n${fuentes.length} fuentes con URL · ${fuentes.length - sinNodo.length - excluidas} con nodo · ${excluidas} excluidas · ${sinNodo.length} sin nodo`);
+    if (sinNodo.length) {
+      console.log('Regla: una fuente con URL: es un nodo con enlace igual a esa URL (excepciones en sitio.yaml > cobertura.excluir).');
+    }
+    return sinNodo.length ? 1 : 0;
+  },
+
   skill(dir) {
     console.log(`Guía instalada en ${instalarSkill(dir)}`);
     return 0;
@@ -86,17 +110,22 @@ const comandos = {
   },
 
   build(dir, v) {
-    const { indice, errores } = construirIndice(dir, { borradores: v.borradores });
+    // El widget se comprueba antes de escribir nada: si está viejo, build falla sin dejar medio trabajo.
+    const widget = v.widget ? widgetAlDia() : null;
+    const { indice, errores, avisos, omitidos, dominios } = construirIndice(dir, { borradores: v.borradores });
     for (const e of errores) console.error(`ERROR  ${e}`);
+    for (const a of avisos) console.log(`aviso  ${a}`);
     const salida = v.salida ?? join(dir, 'indice.json');
     mkdirSync(dirname(resolve(salida)), { recursive: true });
     writeFileSync(salida, `${JSON.stringify(indice)}\n`);
     console.log(`${indice.nodos.length} nodos en el chat · versión ${indice.version} · ${salida}`);
-    if (v.widget) {
-      if (!existsSync(WIDGET)) throw new Error(`falta ${WIDGET}; corre \`npm run empaquetar\` en el repo de pregunta-al-sitio`);
+    if (omitidos) {
+      console.log(`${omitidos} enlace(s) omitido(s) por estar fuera de ${dominios.join(', ') || 'las rutas del sitio (falta sitio)'} · detalle: pregunta-al-sitio validar`);
+    }
+    if (widget) {
       const destino = join(dirname(resolve(salida)), 'pregunta-al-sitio.js');
-      copyFileSync(WIDGET, destino);
-      console.log(`widget copiado en ${destino}`);
+      copyFileSync(widget.ruta, destino);
+      console.log(`widget ${widget.empaquetado ? 'empaquetado y ' : ''}copiado en ${destino}`);
     }
     return errores.length ? 1 : 0;
   },
@@ -127,6 +156,9 @@ const comandos = {
       console.log(`  ${t.padEnd(12)} n ${String(m.n).padStart(3)} · acierto ${p(m.aciertoTotal)} · top-3 ${p(m.top3)}`);
     }
     console.log(`\nFuga sin detector de ámbito (solo puntaje): ${p(s.fugaSinDetector)}`);
+    if (s.seguimiento.n) {
+      console.log(`Seguimiento (${s.seguimiento.n}, fuera de las métricas: el chat responde sin contexto): acierto ${p(s.seguimiento.acierto)}`);
+    }
     const linea = (e) => `  [${e.tipo}] "${e.consulta}" → ${e.zona} ${e.obtenido.join(', ')} (esperado ${e.esperado.join(' | ')})`;
     // Los de ajuste son los que se corrigen; los de validación muestran cuánto generaliza.
     console.log(`\nErrores en ajuste (${s.erroresAjuste.length}):`);
@@ -144,12 +176,22 @@ const comandos = {
 
   calibrar(dir, v) {
     const datos = indiceDe(dir, v);
-    const r = calibrar(datos, cargarPreguntas(v.preguntas ?? join(dir, 'preguntas.yaml')));
+    const maxFalsoRechazo = v['max-falso-rechazo'] === undefined ? null : porcentaje(v['max-falso-rechazo']);
+    const r = calibrar(datos, cargarPreguntas(v.preguntas ?? join(dir, 'preguntas.yaml')), { maxFalsoRechazo });
     console.log('motor', JSON.stringify(r.config.motor));
     console.log('zonas', JSON.stringify(r.config.zonas));
     console.log(`Escala del puntaje: ${r.escala.toFixed(2)}`);
     console.log(`Ajuste (${r.ajuste.n}): ${resumen(r.ajuste.metricas)}`);
     console.log(`Validación (${r.validacion.n}): ${resumen(r.validacion.metricas)}`, cumple(r.validacion.metricas) ? '· cumple' : '· NO cumple');
+    console.log(`\nCompromiso falso rechazo / fuga por umbral Cm (máximo de falso rechazo ${p(r.objetivo.falsoRechazo)}):`);
+    console.log('  Cm    ajuste: f. rechazo  fuga   · validación: f. rechazo  fuga');
+    for (const c of r.compromiso) {
+      const col = (x) => p(x).padStart(6);
+      console.log(`  ${c.Cm.toFixed(2)}          ${col(c.ajuste.falsoRechazo)} ${col(c.ajuste.fuga)}   ·             ${col(c.validacion.falsoRechazo)} ${col(c.validacion.fuga)}${c.elegido ? '  ← elegido' : ''}`);
+    }
+    if (r.validacion.metricas.falsoRechazo > r.objetivo.falsoRechazo) {
+      console.log(`Ningún umbral deja el falso rechazo de validación bajo ${p(r.objetivo.falsoRechazo)}: revisa los errores con evaluar.`);
+    }
     if (v.escribir) {
       const ruta = join(dir, 'sitio.yaml');
       // parseDocument conserva los comentarios del archivo.

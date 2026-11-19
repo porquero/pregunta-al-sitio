@@ -109,6 +109,16 @@ export function normalizarOpciones(entrada = {}) {
 }
 
 /** Reemplaza {nombre} en un texto. */
+/** Marcadores del número de ejemplo de la documentación: si siguen en el enlace, no se cambió. */
+export const MARCADORES_CONTACTO = ['TU-NUMERO', '56900000000'];
+
+/** Aviso para la consola si el enlace de contacto aún tiene el número de ejemplo; si no, null. */
+export function avisoContacto(contacto) {
+  if (contacto?.tipo !== 'enlace') return null;
+  const marcador = MARCADORES_CONTACTO.find((m) => contacto.enlace.includes(m));
+  return marcador ? `el enlace de contacto aún tiene el número de ejemplo (${marcador}); cambia data-contacto-enlace` : null;
+}
+
 export function formatear(texto, valores = {}) {
   return String(texto).replace(/\{(\w+)\}/g, (m, k) => (Object.hasOwn(valores, k) ? String(valores[k]) : m));
 }

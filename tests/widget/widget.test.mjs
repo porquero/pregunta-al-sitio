@@ -1,7 +1,7 @@
 // Partes puras del widget: opciones, textos y contacto. El DOM se prueba en el navegador con dev/.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizarOpciones, opcionesDeAtributos, formatear, preguntaOpciones, TEXTOS } from '../../src/widget/opciones.js';
+import { normalizarOpciones, opcionesDeAtributos, formatear, preguntaOpciones, avisoContacto, TEXTOS } from '../../src/widget/opciones.js';
 import { enlaceContacto, cuerpoContacto, erroresContacto, enviarContacto } from '../../src/widget/contacto.js';
 import { RETARDO_MS, CLAVE_SESION } from '../../src/motor/config.js';
 
@@ -89,4 +89,13 @@ test('envía el webhook como JSON o como formulario', async () => {
   assert.equal(String(llamadas[1].init.body), 'mensaje=m&ruta%5B%5D=a&ruta%5B%5D=b');
   assert.equal(await enviarContacto('/falla', {}, { fetch: falso }), false);
   assert.equal(await enviarContacto('/h', {}, { fetch: async () => { throw new Error('red'); } }), false);
+});
+
+test('avisa si el enlace de contacto conserva el número de ejemplo', () => {
+  const contacto = (enlace) => normalizarOpciones({ indice: 'x', contacto: { enlace } }).contacto;
+  assert.match(avisoContacto(contacto('https://wa.me/TU-NUMERO?text={mensaje}')), /número de ejemplo \(TU-NUMERO\)/);
+  assert.match(avisoContacto(contacto('https://wa.me/56900000000?text={mensaje}')), /56900000000/);
+  assert.equal(avisoContacto(contacto('https://wa.me/56912345678?text={mensaje}')), null);
+  assert.equal(avisoContacto(normalizarOpciones({ indice: 'x', contacto: { webhook: '/h' } }).contacto), null);
+  assert.equal(avisoContacto(null), null);
 });
