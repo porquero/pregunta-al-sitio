@@ -91,7 +91,8 @@ button, input, textarea { font: inherit; color: inherit; }
 .pas-respuesta p, .bloque p { margin: 0 0 8px; }
 .pas-antetitulo { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pas-texto-suave); }
 .pas-titulo { margin: 0 0 6px; font-size: 16px; line-height: 1.3; }
-.pas-respuesta a, .bloque a { color: var(--pas-acento); text-underline-offset: 2px; }
+/* Enlaces de texto. Los <a class="boton"> (contacto por enlace) conservan el color del botón. */
+.pas-respuesta a:not(.boton), .bloque a:not(.boton) { color: var(--pas-acento); text-underline-offset: 2px; }
 .pas-items, .pas-pasos { margin: 8px 0; padding-left: 20px; }
 .pas-items li, .pas-pasos li { margin: 2px 0; }
 .pas-datos { margin: 8px 0; }

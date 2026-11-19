@@ -52,7 +52,7 @@ test('iniciar no sobrescribe un sitio existente', () => {
 test('skill copia la guía con sus referencias', () => {
   const destino = instalarSkill(temporal());
   assert.match(readFileSync(join(destino, 'SKILL.md'), 'utf8'), /^---\nname: pregunta-al-sitio-contenido\ndescription: /);
-  assert.deepEqual(readdirSync(join(destino, 'referencia')).sort(), ['ambito-y-diccionario.md', 'diagnostico.md', 'nodos.md', 'preguntas.md']);
+  assert.deepEqual(readdirSync(join(destino, 'referencia')).sort(), ['ambito-y-diccionario.md', 'diagnostico.md', 'nodos.md', 'preguntas.md', 'rubros.md']);
 });
 
 test('los enlaces de la guía apuntan a archivos que existen', () => {

@@ -17,6 +17,10 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 
 ## Último trabajo (2026-11-19)
 
+- Bug visual (sin commit): el `<a class="boton">` del contacto por enlace quedaba con el texto del color
+  del fondo porque `.pas-respuesta a` lo pisaba. Ahora la regla es `a:not(.boton)`. Test de cascada en
+  `tests/widget/estilos.test.mjs`; revisado en el navegador en claro y oscuro. `.pas-cta a` es un enlace de
+  texto y no tenía el problema. También se corrigió el test de `skill`, que no esperaba `rubros.md`.
 - Rubro y schema.org (solo documentación, commit `36b6418`): la guía pide el rubro y el contexto al empezar,
   elige el tipo de schema.org y usa sus propiedades como pauta de los nodos (`referencia/rubros.md`).
   Campos opcionales `sitio.yaml > rubro` y `schema` por nodo: el chat no los usa; `validar` y `build` los
