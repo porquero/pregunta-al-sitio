@@ -48,7 +48,16 @@ avances sin su respuesta.
    hay ninguna, pregunta de dónde sacarlas antes de seguir.
 2. Si no existe la carpeta, créala con `iniciar`.
 3. Escribe `informes/inventario.md`: una fila por fuente con tipo, tema, secciones útiles y
-   observaciones.
+   observaciones. Marca las fuentes que tengan una línea `URL:`.
+
+**Regla fija: una fuente con `URL:` es un nodo.** Todo `.md` de fuente que traiga una línea `URL:` es una
+página publicada y tiene al menos un nodo propio, con `enlace` igual a esa URL. Da igual si la página es
+una portada, una categoría, una ficha de empresa, un artículo de blog o una página de noticias. Un mismo
+archivo puede dar además otros nodos (resumen y detalle, secciones que se preguntan por separado). Solo hay
+dos excepciones, y ambas se escriben en el inventario con su motivo: el duplicado exacto de otra fuente
+(misma página bajo otra URL) y la página que la persona pida excluir. Las páginas de navegación, listados
+o noticias también llevan nodo: si no tienen datos propios, el nodo orienta (qué hay allí y cómo llegar) y no
+repite los listados.
 
 ### 2. Mapa de nodos — Alto
 
@@ -58,6 +67,10 @@ Escribe `informes/mapa-de-nodos.md` con una tabla: id, tipo, título, enlace, fo
 - Un nodo por tema que un visitante preguntaría por separado. Un sitio pequeño suele quedar con 10 a 20
   nodos; uno de servicios, con 25 a 40.
 - Siempre: `inicio` (tipo `saludo`) y `contacto`.
+- Siempre: un nodo por cada fuente con `URL:` (regla de la etapa 1). Antes de pedir la revisión, corre
+  `node .claude/skills/pregunta-al-sitio-contenido/cobertura-url.mjs` sobre el mapa ya escrito en nodos, o
+  cruza a mano la columna `enlace` con las URL de las fuentes. Toda fuente sin nodo se lista en el mapa, en
+  una sección "Fuentes sin nodo" con el motivo permitido (duplicado exacto o exclusión pedida).
 - Si una fuente profundiza un tema, propón dos nodos (resumen y detalle) unidos por una arista
   `profundiza`.
 
@@ -81,7 +94,8 @@ Con el mapa aprobado, escribe un archivo por nodo en `nodos/`. Reglas de campos 
 - Un dato que falta se marca `[REDACTAR …]` y el nodo queda en `estado: borrador`.
 - Todo nodo nace en `borrador`; lo aprueba la persona.
 
-Corre `validar` hasta que no queden errores.
+Corre `validar` hasta que no queden errores y `cobertura-url.mjs` hasta que no quede ninguna fuente con
+`URL:` sin nodo.
 
 ### 4. Diccionario y ámbito
 
