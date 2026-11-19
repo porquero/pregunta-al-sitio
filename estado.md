@@ -17,7 +17,7 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 
 ## Último trabajo (2026-11-19)
 
-- Hallazgos del primer sitio real (turismo, 54 nodos), 11 puntos, sin commit:
+- Hallazgos del primer sitio real (turismo, 54 nodos), 11 puntos (commit `63abacd`):
   1. `build --widget` empaqueta antes de copiar (con esbuild) o falla si `src/` es más reciente que
      `dist/`; test que compara el hash del bundle con una compilación nueva.
   2. Autoenlace con `autoenlazar_destino: enlace` y sin enlace del sitio: texto, no `href="#"`.
@@ -88,7 +88,7 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 | 4 | Commit de la fase 4 | ✅ `9dd9f1d` |
 | 4+ | Enlaces entre nodos: `nodo:`, autoenlace, `validar` de ids rotos, clic en el widget | ✅ Tests + navegador · `975eb88` |
 | 4+ | Solo enlaces del sitio principal (`sitio` en `sitio.yaml`) | ✅ Tests + navegador · commit siguiente al `975eb88` |
-| 4+ | Hallazgos del sitio de turismo (11 puntos: widget al día, tarjetas, dominio, chips, cobertura, calibrar, erratas…) | ✅ Tests + navegador · ⏳ commit |
+| 4+ | Hallazgos del sitio de turismo (11 puntos: widget al día, tarjetas, dominio, chips, cobertura, calibrar, erratas…) | ✅ `63abacd` |
 | 5 | Sitio de ejemplo, documentación, empaquetado y publicación | ⏳ |
 | 6 | (Opcional) Playa migra a la librería | ⏳ |
 
