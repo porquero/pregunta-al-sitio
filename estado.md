@@ -17,7 +17,7 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 
 ## Último trabajo (2026-11-19)
 
-- Rubro y schema.org (solo documentación, sin commit): la guía pide el rubro y el contexto al empezar,
+- Rubro y schema.org (solo documentación, commit `36b6418`): la guía pide el rubro y el contexto al empezar,
   elige el tipo de schema.org y usa sus propiedades como pauta de los nodos (`referencia/rubros.md`).
   Campos opcionales `sitio.yaml > rubro` y `schema` por nodo: el chat no los usa; `validar` y `build` los
   aceptan (probado con una copia de Playa).
