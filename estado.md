@@ -17,7 +17,7 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 
 ## Último trabajo (2026-11-19)
 
-- UX tras pruebas con usuarios (sin commit):
+- UX tras pruebas con usuarios (commit `b2b3180`):
   1. "Ver más" pasa a ser un botón destacado "Ver más sobre {titulo} →", antes de los chips, que llevan el
      título visible "Sigue preguntando" para separarlos.
   2. Sin respuesta: el formulario de contacto queda plegado tras "Escribir al equipo" (secundario), con
