@@ -61,7 +61,14 @@ preguntas. `skill` copia la guía de contenido a `.claude/skills/` para que Clau
 
 > Prepara el contenido de pregunta-al-sitio a partir de fuentes/
 
-El agente se detiene tres veces para que revises:
+Primero te pregunta el **rubro y el contexto** del sitio (qué ofrece, a quién, dónde) y elige el tipo
+de [schema.org](https://schema.org) que le corresponde (`Hotel`, `Restaurant`, `ProfessionalService`…).
+Las propiedades de ese tipo son la pauta de los nodos: así no se le pasan los temas que la gente suele
+preguntar en ese rubro (horario de entrada, mascotas, reservas…), y los datos que falten quedan como
+pendientes en vez de inventarse. Detalle en
+[guia-contenido/referencia/rubros.md](guia-contenido/referencia/rubros.md).
+
+Después se detiene tres veces para que revises:
 
 1. El **mapa de nodos**: qué temas tendrá el chat, más los conflictos entre fuentes y los datos que
    faltan (en `contenido/informes/`).
@@ -164,6 +171,7 @@ sinonimos: [hospedaje]
 aristas: [{ a: contacto, tipo: cta, peso: 0.7 }]
 chips: [¿Hacen respaldos?, { texto: Hablar con el equipo, a: contacto }]
 estado: aprobado                # borrador | aprobado
+schema: { tipo: Service, propiedades: [serviceType, offers] }   # opcional: qué datos de schema.org cubre
 ---
 ```
 

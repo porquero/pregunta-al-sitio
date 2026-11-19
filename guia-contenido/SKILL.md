@@ -41,14 +41,19 @@ pregunta-al-sitio build contenido -o public/indice.json --widget
 Sigue las etapas en orden. Las marcadas con **Alto** terminan esperando la revisión de la persona: no
 avances sin su respuesta.
 
-### 1. Fuentes e inventario
+### 1. Rubro, fuentes e inventario
 
-1. Junta las fuentes: lo que haya en `fuentes/` (o la carpeta que te indiquen), el sitio publicado si
+1. **Pregunta el rubro y el contexto** del sitio: qué es el negocio, qué ofrece, a quién y dónde. Si las
+   fuentes ya lo muestran, propón tú la respuesta y pide que la confirme. Con eso elige el tipo de
+   [schema.org](https://schema.org) que corresponde (`Hotel`, `Restaurant`, `ProfessionalService`…) y
+   anótalo en `sitio.yaml > rubro`. Sus propiedades son la pauta de los nodos. Detalle en
+   [referencia/rubros.md](referencia/rubros.md). No avances sin la respuesta.
+2. Junta las fuentes: lo que haya en `fuentes/` (o la carpeta que te indiquen), el sitio publicado si
    te dan su URL (cada página relevante, incluido el pie y las páginas legales), documentos (PDF,
    presentaciones, textos) y preguntas reales de clientes si existen. No modifiques las fuentes. Si no
    hay ninguna, pregunta de dónde sacarlas antes de seguir.
-2. Si no existe la carpeta, créala con `iniciar`.
-3. Escribe `informes/inventario.md`: una fila por fuente con tipo, tema, secciones útiles y
+3. Si no existe la carpeta, créala con `iniciar`.
+4. Escribe `informes/inventario.md`: una fila por fuente con tipo, tema, secciones útiles y
    observaciones. Marca las fuentes que tengan una línea `URL:`.
 
 **Regla fija: una fuente con `URL:` es un nodo.** Todo `.md` de fuente que traiga una línea `URL:` es una
@@ -62,8 +67,9 @@ repite los listados.
 
 ### 2. Mapa de nodos — Alto
 
-Escribe `informes/mapa-de-nodos.md` con una tabla: id, tipo, título, enlace, formato, fuente
-(archivo y sección), aristas previstas y estado. Criterios en [referencia/nodos.md](referencia/nodos.md).
+Escribe `informes/mapa-de-nodos.md` con una tabla: id, tipo, título, enlace, formato, schema (tipo y
+propiedades que cubre), fuente (archivo y sección), aristas previstas y estado. Criterios en
+[referencia/nodos.md](referencia/nodos.md) y [referencia/rubros.md](referencia/rubros.md).
 
 - Un nodo por tema que un visitante preguntaría por separado. Un sitio pequeño suele quedar con 10 a 20
   nodos; uno de servicios, con 25 a 40.
@@ -72,6 +78,10 @@ Escribe `informes/mapa-de-nodos.md` con una tabla: id, tipo, título, enlace, fo
   columna `enlace` del mapa con las URL de las fuentes. Toda fuente sin nodo se lista en el mapa, en una
   sección "Fuentes sin nodo" con el motivo permitido (duplicado exacto o exclusión pedida); al escribir los
   nodos, esas URL van a `sitio.yaml > cobertura.excluir`.
+- Recorre las propiedades del tipo de schema.org del rubro: agrupa en un nodo las que se preguntan
+  juntas (ubicación, horario, pagos, políticas) y da un nodo a cada oferta concreta (habitación, tour,
+  servicio, producto). Al final del mapa, lista las propiedades frecuentes que ningún nodo cubre y por qué.
+  Los datos que faltan van a `informes/pendientes.md`, nunca inventados.
 - Si una fuente profundiza un tema, propón dos nodos (resumen y detalle) unidos por una arista
   `profundiza`.
 
@@ -92,6 +102,8 @@ Con el mapa aprobado, escribe un archivo por nodo en `nodos/`. Reglas de campos 
 - `respuesta_corta` de 40 a 60 palabras, copiada de la fuente con ajustes mínimos; nombra al sitio.
 - 8 a 12 `preguntas` escritas como las escribiría un visitante, con su jerga.
 - `keywords` y `sinonimos` con las palabras que usaría alguien que no conoce los nombres internos.
+  Las propiedades de schema.org ordenan los nodos, pero no son palabras de visitante: van solo en el campo
+  `schema`.
 - Un dato que falta se marca `[REDACTAR …]` y el nodo queda en `estado: borrador`.
 - Todo nodo nace en `borrador`; lo aprueba la persona.
 

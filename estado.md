@@ -17,6 +17,10 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 
 ## Último trabajo (2026-11-19)
 
+- Rubro y schema.org (solo documentación, sin commit): la guía pide el rubro y el contexto al empezar,
+  elige el tipo de schema.org y usa sus propiedades como pauta de los nodos (`referencia/rubros.md`).
+  Campos opcionales `sitio.yaml > rubro` y `schema` por nodo: el chat no los usa; `validar` y `build` los
+  aceptan (probado con una copia de Playa).
 - Hallazgos del primer sitio real (turismo, 54 nodos), 11 puntos (commit `63abacd`):
   1. `build --widget` empaqueta antes de copiar (con esbuild) o falla si `src/` es más reciente que
      `dist/`; test que compara el hash del bundle con una compilación nueva.
