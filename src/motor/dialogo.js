@@ -56,6 +56,19 @@ export function chipsSeguimiento(nodo, { vistos = [], porId = new Map() } = {}) 
 }
 
 /**
+ * Temas para seguir cuando la consulta no tuvo respuesta: los chips de la bienvenida (nodo de tipo saludo),
+ * sin los nodos ya mostrados ni contacto. Así el visitante ve que puede seguir preguntando.
+ *   nodos   nodos del índice
+ *   vistos  ids de los nodos mostrados antes
+ */
+export function sugerenciasSinRespuesta(nodos, { vistos = [] } = {}) {
+  const saludo = nodos.find((n) => n.tipo === 'saludo');
+  if (!saludo) return [];
+  const porId = new Map(nodos.map((n) => [n.id, n]));
+  return chipsSeguimiento(saludo, { vistos: [...vistos, 'contacto'], porId }).filter((s) => s.nodo !== 'contacto');
+}
+
+/**
  * Controlador del diálogo. Las interacciones se encolan: una respuesta termina de mostrarse antes
  * de procesar la siguiente, aunque el usuario pulse varios chips seguidos.
  *   obtenerResolver  () => Promise<{ resolver }>
@@ -73,6 +86,7 @@ export function crearDialogo({ obtenerResolver, render, sesion, registrarSinResp
   // Nodos mostrados en la conversación, en orden: el render los usa para no repetir chips.
   const vistos = [];
   const mostrar = (evento, opciones) => {
+    if (evento.tipo === 'contacto') return render.contacto(evento.ref, { ...opciones, vistos: [...vistos] });
     if (evento.tipo !== 'nodo') return render[evento.tipo](evento.ref, opciones);
     const previos = [...vistos];
     if (vistos.at(-1) !== evento.ref) vistos.push(evento.ref);

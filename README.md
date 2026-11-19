@@ -118,8 +118,17 @@ Opciones como atributos `data-*` del script, o en `window.PreguntaAlSitioConfig`
 | `sinRespuesta` | `data-sin-respuesta` | URL que recibe `{ tokens }` de las consultas sin respuesta |
 | `textos` | — | reemplaza cualquier texto de la interfaz (ver `src/widget/opciones.js`) |
 
-Sin opción de contacto, las consultas sin respuesta muestran solo el nodo `contacto`. Si el enlace de
-contacto conserva el número de ejemplo (`TU-NUMERO`), el widget lo avisa en la consola del navegador.
+Cuando una consulta no tiene respuesta, el widget muestra el nodo `contacto` con el formulario plegado
+tras un botón "Escribir al equipo", la invitación a seguir preguntando y los temas de la bienvenida (chips
+del nodo de tipo `saludo`) que aún no se vieron. Así la conversación no parece terminada. Si la persona
+pide escribir al equipo, el formulario aparece abierto. Sin opción de contacto, se muestra solo el nodo
+`contacto` y la invitación a seguir. Si el enlace de contacto conserva el número de ejemplo
+(`TU-NUMERO`), el widget lo avisa en la consola del navegador.
+
+Si el nodo tiene `enlace`, la respuesta termina con un botón "Ver más sobre {titulo}": es el paso más
+directo para ampliar la respuesta, así que se destaca sobre los chips, que van después bajo "Sigue
+preguntando". Los textos se cambian con `textos.verMas` (admite `{titulo}`), `textos.sigue` y
+`textos.seguirPreguntando`.
 
 Los chips de seguimiento no repiten nodos que la persona ya vio en la conversación: si un nodo no declara
 `chips`, se completan con los destinos de sus otras aristas, y el nodo anterior solo vuelve si no queda

@@ -106,7 +106,18 @@ button, input, textarea { font: inherit; color: inherit; }
 .pas-etiquetas { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; padding: 0; list-style: none; }
 .pas-etiquetas li { padding: 2px 10px; border: 1px solid var(--pas-borde); border-radius: 999px; font-size: 13px; }
 .pas-cta { margin-top: 10px; }
-.ver-mas { margin: 8px 0 0; font-size: 14px; }
+.ver-mas { margin: 12px 0 0; }
+.boton--ver-mas { gap: 8px; min-height: 42px; text-align: left; }
+.boton--ver-mas .flecha { font-size: 18px; line-height: 1; }
+.boton.boton--secundario { border: 1px solid var(--pas-acento); background: var(--pas-fondo); color: var(--pas-acento); }
+.boton.boton--secundario:hover { background: var(--pas-acento); color: var(--pas-acento-texto); }
+.contacto-plegado { margin-top: 10px; }
+.seguir { margin: 14px 0 0; padding-top: 10px; border-top: 1px solid var(--pas-borde); }
+.chips-titulo {
+  margin: 14px 0 0; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--pas-texto-suave);
+}
+.chips-titulo + .chips { margin-top: 6px; }
 .derivacion { padding-bottom: 8px; border-bottom: 1px solid var(--pas-borde); }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }

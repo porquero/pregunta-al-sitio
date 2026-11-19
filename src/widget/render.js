@@ -3,7 +3,9 @@
 // como HTML; el HTML de las respuestas viene del índice, armado y escapado por `build`.
 import { formatear, preguntaOpciones } from './opciones.js';
 import { enlaceContacto, cuerpoContacto, erroresContacto, enviarContacto } from './contacto.js';
-import { chipsSeguimiento } from '../motor/dialogo.js';
+import { chipsSeguimiento, sugerenciasSinRespuesta } from '../motor/dialogo.js';
+
+const datosChip = (s) => ({ texto: s.texto, datos: s.nodo ? { nodo: s.nodo } : { q: s.q } });
 
 const espera = (ms) => new Promise((ok) => setTimeout(ok, ms));
 
@@ -14,9 +16,20 @@ function el(etiqueta, clase, texto) {
   return e;
 }
 
-function chips(etiqueta, lista) {
+/** Lista de chips. Con titulo, la etiqueta también se ve sobre los chips (los separa del "Ver más"). */
+function chips(etiqueta, lista, { titulo = false } = {}) {
   const ul = el('ul', 'chips');
   ul.setAttribute('aria-label', etiqueta);
+  llenar(ul, lista);
+  if (!titulo) return ul;
+  const caja = document.createDocumentFragment();
+  const t = el('p', 'chips-titulo', etiqueta);
+  t.setAttribute('aria-hidden', 'true');
+  caja.append(t, ul);
+  return caja;
+}
+
+function llenar(ul, lista) {
   for (const { texto, datos } of lista) {
     const li = el('li');
     const b = el('button', 'chip', texto);
@@ -25,7 +38,6 @@ function chips(etiqueta, lista) {
     li.append(b);
     ul.append(li);
   }
-  return ul;
 }
 
 /**
@@ -83,27 +95,51 @@ export function crearRender({ log, datos, opciones, ruta = () => [] }) {
     else log.scrollTop = log.scrollHeight;
   }
 
-  /** Bloque del nodo: su HTML, "Ver más" y los chips de seguimiento. */
-  async function bloqueNodo(id, { conSeguimiento = true, vistos = [] } = {}) {
+  /**
+   * Bloque del nodo: su HTML, "Ver más" y los chips de seguimiento. "Ver más" es un botón con el nombre del
+   * tema: es el siguiente paso más directo y no debe confundirse con los chips de otros temas.
+   */
+  async function bloqueNodo(id, { conSeguimiento = true, conVerMas = true, vistos = [] } = {}) {
     const n = await nodoDe(id);
     if (!n) return null;
     const plantilla = document.createElement('template');
     plantilla.innerHTML = n.respuesta ?? '';
     const bloque = plantilla.content.firstElementChild ?? el('div', 'bloque', n.titulo);
-    if (n.enlace) {
+    if (n.enlace && conVerMas) {
       const p = el('p', 'ver-mas');
-      const a = el('a', null, `${textos.verMas} →`);
+      const nombre = n.titulo.split(',')[0].trim();
+      const a = el('a', 'boton boton--ver-mas', formatear(textos.verMas, { titulo: nombre }));
       a.href = n.enlace;
       if (/^https?:/i.test(n.enlace) && new URL(n.enlace, location.href).origin !== location.origin) a.rel = 'noopener';
-      a.append(el('span', 'oculto', `: ${n.titulo}`));
+      if (!textos.verMas.includes('{titulo}')) a.append(el('span', 'oculto', `: ${n.titulo}`));
+      const flecha = el('span', 'flecha', '→');
+      flecha.setAttribute('aria-hidden', 'true');
+      a.append(flecha);
       p.append(a);
       bloque.append(p);
     }
     const seguimiento = conSeguimiento ? chipsSeguimiento(n, { vistos, porId: await porId() }) : [];
     if (seguimiento.length) {
-      bloque.append(chips(textos.sigue, seguimiento.map((s) => ({ texto: s.texto, datos: s.nodo ? { nodo: s.nodo } : { q: s.q } }))));
+      bloque.append(chips(textos.sigue, seguimiento.map(datosChip), { titulo: Boolean(n.enlace) }));
     }
     return bloque;
+  }
+
+  /**
+   * Formulario plegado tras un botón: cuando la consulta no tuvo respuesta, el contacto es una opción y no
+   * el final de la conversación.
+   */
+  function plegado(etiqueta, crear) {
+    const caja = el('div', 'contacto-plegado');
+    const boton = el('button', 'boton boton--secundario', etiqueta);
+    boton.type = 'button';
+    boton.addEventListener('click', () => {
+      const form = crear();
+      caja.replaceChildren(form);
+      form.querySelector('textarea, input')?.focus();
+    });
+    caja.append(boton);
+    return caja;
   }
 
   function campo(form, { nombre, etiqueta, tipo = 'input', atributos = {} }) {
@@ -284,10 +320,19 @@ export function crearRender({ log, datos, opciones, ruta = () => [] }) {
     contacto({ texto, derivado }, op) {
       return responder(async () => {
         const indice = await datos();
-        const bloque = (await bloqueNodo('contacto', { conSeguimiento: false })) ?? el('div', 'bloque');
+        const bloque = (await bloqueNodo('contacto', { conSeguimiento: false, conVerMas: !contacto })) ?? el('div', 'bloque');
         if (derivado && indice.derivacion) bloque.prepend(el('p', 'derivacion', indice.derivacion));
-        if (contacto?.tipo === 'enlace') bloque.append(contactoEnlace(texto));
-        else if (contacto?.tipo === 'webhook') bloque.append(contactoWebhook(texto));
+        const crear = contacto?.tipo === 'enlace' ? () => contactoEnlace(texto)
+          : contacto?.tipo === 'webhook' ? () => contactoWebhook(texto) : null;
+        if (!derivado) {
+          if (crear) bloque.append(crear());
+          return bloque;
+        }
+        // Sin respuesta: el formulario queda plegado y se invita a seguir con otros temas.
+        if (crear) bloque.append(plegado(textos.escribirEquipo, crear));
+        bloque.append(el('p', 'seguir', textos.seguirPreguntando));
+        const temas = sugerenciasSinRespuesta(indice.nodos, { vistos: op?.vistos ?? [] });
+        if (temas.length) bloque.append(chips(textos.sigue, temas.map(datosChip)));
         return bloque;
       }, op);
     },

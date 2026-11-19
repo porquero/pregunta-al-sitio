@@ -1,7 +1,7 @@
 // Máquina de estados del chat (dialogo.js), con un render de prueba.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decidir, debeRegistrarse, crearDialogo, chipsSeguimiento, LARGO_MAXIMO } from '../../src/motor/dialogo.js';
+import { decidir, debeRegistrarse, crearDialogo, chipsSeguimiento, sugerenciasSinRespuesta, LARGO_MAXIMO } from '../../src/motor/dialogo.js';
 import { crearResolver } from '../../src/motor/resolver.js';
 import { cargarIndice } from '../../cli/evaluacion/datos.mjs';
 
@@ -56,7 +56,7 @@ test('una pregunta de alta confianza muestra el mensaje del usuario y luego el n
 test('el conocimiento general va a contacto con la consulta precargada y se registra como tokens', async () => {
   const { dialogo, dibujado, registrados } = armar();
   await dialogo.preguntar('¿Qué es la Ley 21.719?');
-  assert.deepEqual(dibujado[1], { tipo: 'contacto', ref: { texto: '¿Qué es la Ley 21.719?', derivado: true }, animar: true });
+  assert.deepEqual(dibujado[1], { tipo: 'contacto', ref: { texto: '¿Qué es la Ley 21.719?', derivado: true }, animar: true, vistos: [] });
   assert.equal(registrados.length, 1);
   assert.ok(registrados[0].every((t) => /^[a-z0-9]+$/.test(t)), 'solo tokens normalizados');
 });
@@ -130,4 +130,22 @@ test('el diálogo pasa al render los nodos mostrados antes', async () => {
   dialogo.abrirNodo('contacto', 'Contacto');
   await dialogo.abrirNodo('metodologia', 'Metodología');
   assert.deepEqual(dibujado.filter((d) => d.tipo === 'nodo').map((d) => d.vistos), [[], ['metodologia'], ['metodologia', 'contacto']]);
+});
+
+test('sin respuesta: sugiere los temas de la bienvenida que aún no se vieron, sin contacto', () => {
+  const n = (id, extra = {}) => ({ id, titulo: id.toUpperCase(), chips: [], aristas: [], seguimiento: [], ...extra });
+  const nodos = [
+    n('inicio', { tipo: 'saludo', chips: ['x'], seguimiento: [{ texto: 'A', nodo: 'a' }, { texto: 'B', nodo: 'b' }, { texto: 'Contacto', nodo: 'contacto' }] }),
+    n('a'), n('b'), n('contacto'),
+  ];
+  assert.deepEqual(sugerenciasSinRespuesta(nodos), [{ texto: 'A', nodo: 'a' }, { texto: 'B', nodo: 'b' }]);
+  assert.deepEqual(sugerenciasSinRespuesta(nodos, { vistos: ['a'] }), [{ texto: 'B', nodo: 'b' }]);
+  assert.deepEqual(sugerenciasSinRespuesta(nodos.slice(1)), [], 'sin nodo de saludo no hay sugerencias');
+});
+
+test('el contacto recibe los nodos mostrados antes, para no repetirlos en las sugerencias', async () => {
+  const { dialogo, dibujado } = armar();
+  await dialogo.abrirNodo('metodologia', 'Metodología');
+  await dialogo.preguntar('¿Qué es la Ley 21.719?');
+  assert.deepEqual(dibujado.find((d) => d.tipo === 'contacto').vistos, ['metodologia']);
 });

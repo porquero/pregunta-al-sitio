@@ -17,6 +17,13 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 
 ## Último trabajo (2026-11-19)
 
+- UX tras pruebas con usuarios (sin commit):
+  1. "Ver más" pasa a ser un botón destacado "Ver más sobre {titulo} →", antes de los chips, que llevan el
+     título visible "Sigue preguntando" para separarlos.
+  2. Sin respuesta: el formulario de contacto queda plegado tras "Escribir al equipo" (secundario), con
+     "Puedes seguir preguntando…" y los chips de la bienvenida no vistos (`sugerenciasSinRespuesta`).
+     Pedir escribir al equipo lo sigue abriendo directo. El bloque de contacto omite su "Ver más" si hay
+     canal de contacto. Probado en el navegador, claro y oscuro.
 - Bug visual (commit `5592dd5`): el `<a class="boton">` del contacto por enlace quedaba con el texto del color
   del fondo porque `.pas-respuesta a` lo pisaba. Ahora la regla es `a:not(.boton)`. Test de cascada en
   `tests/widget/estilos.test.mjs`; revisado en el navegador en claro y oscuro. `.pas-cta a` es un enlace de
