@@ -1,17 +1,18 @@
 // Enlaces entre nodos: sintaxis [texto](nodo:id), autoenlace, validar y clic en el widget.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parse, stringify } from 'yaml';
-import { enLinea, crearAutoenlace, textoVisible } from '../../cli/contenido/html.mjs';
+import { enLinea, crearAutoenlace, textoVisible, crearFiltroUrl, dominiosDe, respuestaHtml } from '../../cli/contenido/html.mjs';
 import { parsearNodo, nombresEnlazables } from '../../cli/contenido/leer.mjs';
 import { construirIndice } from '../../cli/build.mjs';
 import { validarNodos } from '../../cli/validar.mjs';
 import { evaluar } from '../../cli/evaluacion/evaluar.mjs';
 import { FIXTURE_PLAYA, cargarPreguntas } from '../../cli/evaluacion/datos.mjs';
 import { accionDeClic } from '../../src/widget/acciones.js';
+import { iniciarSitio } from '../../cli/iniciar.mjs';
 
 const NODO = (id, etiqueta) => `<a href="#" role="button" data-nodo="${id}">${etiqueta}</a>`;
 
@@ -50,19 +51,59 @@ test('autoenlace: no toca enlaces, negrita, cursiva ni código', () => {
 
 test('autoenlace: gana el nombre más largo', () => {
   assert.equal(auto('El Hotel Casona Distante'), `El ${NODO('casona', 'Hotel Casona Distante')}`);
-  assert.equal(
-    auto('Casona Distante Tours sale de Distante'),
-    '<a href="https://tours.cl" target="_blank" rel="noopener">Casona Distante Tours</a> sale de ' + NODO('pueblo', 'Distante'),
-  );
+  assert.equal(auto('Casona Distante Tours sale de Distante'), `${NODO('tours', 'Casona Distante Tours')} sale de ${NODO('pueblo', 'Distante')}`);
 });
 
-test('autoenlace: destino según enlace y autoenlazar_destino', () => {
-  const tours = '<a href="https://tours.cl" target="_blank" rel="noopener">Casona Distante Tours</a>';
-  assert.equal(auto('Casona Distante Tours'), tours, 'enlace https: externo');
-  assert.equal(auto('Casona Distante Tours', { destino: 'nodo' }), NODO('tours', 'Casona Distante Tours'));
-  assert.equal(auto('Distante'), NODO('pueblo', 'Distante'), 'enlace relativo: abre el nodo');
-  assert.equal(auto('Distante', { destino: 'enlace' }), '<a href="/pueblo">Distante</a>');
-  assert.equal(auto('Casona', { destino: 'enlace' }), NODO('casona', 'Casona'), 'sin enlace: abre el nodo');
+test('autoenlace: por defecto abre el nodo; con destino enlace, solo enlaces del sitio', () => {
+  const url = crearFiltroUrl(['casona.cl']);
+  assert.equal(auto('Distante'), NODO('pueblo', 'Distante'), 'por defecto: abre el nodo');
+  assert.equal(auto('Distante', { destino: 'enlace', url }), '<a href="/pueblo">Distante</a>');
+  assert.equal(auto('Casona Distante Tours', { destino: 'enlace', url }), NODO('tours', 'Casona Distante Tours'), 'tours.cl no es el sitio: abre el nodo');
+  const propio = [{ nombre: 'Tours', id: 'tours', enlace: 'https://www.casona.cl/tours' }];
+  assert.equal(enLinea('Tours', { autoenlace: crearAutoenlace({ nombres: propio, destino: 'enlace', url }) }), '<a href="https://www.casona.cl/tours">Tours</a>');
+  assert.equal(auto('Casona', { destino: 'enlace', url }), NODO('casona', 'Casona'), 'sin enlace: abre el nodo');
+  assert.ok(!auto('Casona Distante Tours y Distante', { destino: 'enlace', url }).includes('_blank'));
+});
+
+test('sitio: dominios y filtro de URL', () => {
+  assert.deepEqual(dominiosDe('misitio.cl'), ['misitio.cl']);
+  assert.deepEqual(dominiosDe(['https://www.MiSitio.cl/inicio', '*otro.cl*']), ['misitio.cl', 'otro.cl']);
+  assert.deepEqual(dominiosDe(undefined), []);
+  const url = crearFiltroUrl(dominiosDe('misitio.cl'));
+  for (const ok of ['https://misitio.cl', 'https://www.misitio.cl/a?b=1', 'http://tienda.misitio.cl/x', '/ruta', '#ancla', 'mailto:a@misitio.cl', 'tel:+56900000000']) {
+    assert.equal(url(ok), ok, ok);
+  }
+  for (const no of ['https://otro.cl', 'https://misitio.cl.evil.com', 'https://evil.com/?misitio.cl', 'https://nomisitio.cl', 'javascript:alert(1)']) {
+    assert.equal(url(no), null, no);
+  }
+  assert.equal(crearFiltroUrl([])('https://misitio.cl'), null, 'sin sitio: solo relativos');
+});
+
+test('respuesta: los enlaces fuera del sitio se omiten y queda su texto', () => {
+  const url = crearFiltroUrl(['misitio.cl']);
+  assert.equal(enLinea('Ver [la guía](https://www.misitio.cl/guia) o [wotel](https://wotel.cl).', { url }), 'Ver <a href="https://www.misitio.cl/guia">la guía</a> o wotel.');
+  const html = respuestaHtml(
+    { id: 'a', titulo: 'A', formato: 'tarjeta', variante: 'servicio', respuestaCorta: 'x', tarjeta: { items: [{ titulo: 'Afuera', ruta: 'https://otro.cl' }], cta: { texto: 'Ir', destino: 'https://otro.cl' } } },
+    {},
+    { url },
+  );
+  assert.ok(!html.includes('otro.cl') && html.includes('<dt>Afuera</dt>') && !html.includes('pas-cta'), html);
+});
+
+test('build: sin sitio, "Ver más" y enlaces absolutos se omiten', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pas-dom-'));
+  mkdirSync(join(dir, 'nodos'));
+  const md = (id, enlace, texto) => `---\nid: ${id}\ntipo: t\ntitulo: ${id}\nenlace: ${enlace}\nrespuesta_corta: ${texto}\nestado: aprobado\n---\n`;
+  writeFileSync(join(dir, 'nodos', 'a.md'), md('a', 'https://misitio.cl/a', 'Ver [web](https://misitio.cl/x) y [ruta](/y).'));
+  writeFileSync(join(dir, 'nodos', 'b.md'), md('b', '/b', 'b'));
+  const sin = construirIndice(dir).indice.nodos;
+  assert.equal(sin[0].enlace, null);
+  assert.match(sin[0].respuesta, /Ver web y <a href="\/y">ruta<\/a>\./);
+  assert.equal(sin[1].enlace, '/b');
+  writeFileSync(join(dir, 'sitio.yaml'), 'sitio: misitio.cl\n');
+  const con = construirIndice(dir).indice.nodos;
+  assert.equal(con[0].enlace, 'https://misitio.cl/a');
+  assert.match(con[0].respuesta, /<a href="https:\/\/misitio.cl\/x">web<\/a>/);
 });
 
 test('autoenlace: máximo por respuesta', () => {
@@ -127,4 +168,23 @@ test('widget: clic en a[data-nodo] abre el nodo y cancela la navegación', () =>
   assert.deepEqual(accionDeClic(elemento('BUTTON', { nodo: 'casona' }, 'Casona')), { tipo: 'nodo', valor: 'casona', etiqueta: 'Casona', enlace: false });
   assert.deepEqual(accionDeClic(elemento('BUTTON', { q: '¿Precio?' }, '¿Precio?')).tipo, 'consulta');
   assert.equal(accionDeClic({ closest: () => null }), null);
+});
+
+test('validar avisa los enlaces fuera del sitio', () => {
+  const texto = `${Array(44).fill('palabra').join(' ')} [web](https://otro.cl/x)`;
+  const nodos = [nodo('contacto'), nodo('a', { respuestaCorta: texto, enlace: 'https://misitio.cl/a', tarjeta: { cta: { texto: 'Ir', destino: 'https://otro.cl' } } })];
+  assert.deepEqual(validarNodos(nodos, { sitio: 'misitio.cl' }).avisos, [
+    "a: enlace 'https://otro.cl/x' fuera del sitio (misitio.cl): se omite",
+    "a: enlace 'https://otro.cl' fuera del sitio (misitio.cl): se omite",
+  ]);
+  assert.ok(validarNodos(nodos).avisos.includes("a: enlace 'https://misitio.cl/a' fuera del sitio (falta sitio en sitio.yaml): se omite"));
+});
+
+test('iniciar --sitio escribe el dominio', () => {
+  const dir = join(mkdtempSync(join(tmpdir(), 'pas-ini-')), 's');
+  iniciarSitio(dir, { nombre: 'Acme', sitio: 'acme.cl' });
+  assert.equal(parse(readFileSync(join(dir, 'sitio.yaml'), 'utf8')).sitio, 'acme.cl');
+  const vacio = join(mkdtempSync(join(tmpdir(), 'pas-ini-')), 's');
+  iniciarSitio(vacio);
+  assert.equal(parse(readFileSync(join(vacio, 'sitio.yaml'), 'utf8')).sitio, null);
 });

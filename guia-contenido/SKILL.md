@@ -14,7 +14,7 @@ Trabajas sobre una carpeta de contenido (en este documento, `contenido/`):
 
 ```
 contenido/
-  sitio.yaml       nombre, diccionario, ambito, validar y config (esta última la escribe calibrar)
+  sitio.yaml       nombre, sitio (dominio), diccionario, ambito, validar y config (esta última la escribe calibrar)
   nodos/*.md       un nodo por archivo
   preguntas.yaml   set de evaluación
   informes/        inventario, mapa de nodos, conflictos y pendientes (para la revisión humana)
@@ -28,7 +28,7 @@ un archivo de fuente puede dar varios nodos, y un nodo puede juntar datos de var
 Comandos (si `pregunta-al-sitio` no responde, prueba con `npx pregunta-al-sitio …`):
 
 ```bash
-pregunta-al-sitio iniciar contenido --nombre "Nombre del sitio"
+pregunta-al-sitio iniciar contenido --nombre "Nombre del sitio" --sitio dominio.cl
 pregunta-al-sitio validar contenido
 pregunta-al-sitio evaluar contenido [--borradores]
 pregunta-al-sitio calibrar contenido --escribir [--borradores]

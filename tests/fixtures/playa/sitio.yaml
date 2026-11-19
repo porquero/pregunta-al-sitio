@@ -1,6 +1,8 @@
 # Sitio de referencia: Playa SPA. Lo lee `pregunta-al-sitio build`.
 # config lo escribe `pregunta-al-sitio calibrar --escribir`.
 nombre: Playa SPA
+# Dominio principal: las respuestas solo enlazan aquí (wotel.cl queda fuera).
+sitio: playaspa.cl
 config:
   motor:
     k1: 1.6

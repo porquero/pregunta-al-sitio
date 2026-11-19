@@ -14,7 +14,7 @@
 //   reglas      [{ patron, mensaje, nivel: error|aviso, campo: todo|respuesta|respuesta_y_cuerpo, sensible }]
 //               expresiones regulares propias del sitio; sin "sensible" no distinguen mayúsculas
 import { leerSitio, leerNodos, ESTADOS, FORMATOS } from './contenido/leer.mjs';
-import { idsEnlazados, textoVisible } from './contenido/html.mjs';
+import { idsEnlazados, textoVisible, ENLACE_MD, crearFiltroUrl, dominiosDe } from './contenido/html.mjs';
 
 export const VALIDAR_D = {
   respuesta: { palabras_min: 40, palabras_max: 60, nombrar: null, nombrar_salvo: ['saludo'] },
@@ -66,6 +66,8 @@ export function validarNodos(nodos, sitio = {}, erroresLectura = []) {
     }
     porId.set(n.id, n);
   }
+  const dominios = dominiosDe(sitio.sitio);
+  const filtroUrl = crearFiltroUrl(dominios);
   if (sitio.autoenlazar_destino != null && !['enlace', 'nodo'].includes(sitio.autoenlazar_destino)) {
     errores.push(`sitio.yaml: autoenlazar_destino '${sitio.autoenlazar_destino}' inválido (enlace, nodo)`);
   }
@@ -108,6 +110,17 @@ export function validarNodos(nodos, sitio = {}, erroresLectura = []) {
       if (!destino) e(`enlace hacia '${id}', que no existe`);
       else if (id === n.id) e('enlace hacia sí mismo');
       else if (!destino.enChat) e(`enlace hacia '${id}', que no está en el chat`);
+    }
+
+    // Enlaces fuera del sitio principal: build los omite (queda el texto, sin "Ver más" ni botón).
+    const urls = [
+      ...[...n.respuestaCorta.matchAll(ENLACE_MD)].map((m) => m[2]).filter((u) => !u.startsWith('nodo:')),
+      n.enlace,
+      n.tarjeta?.cta?.destino,
+      ...(Array.isArray(n.tarjeta?.items) ? n.tarjeta.items.map((i) => i?.ruta) : []),
+    ].filter(Boolean);
+    for (const u of urls) {
+      if (!filtroUrl(u)) a(`enlace '${u}' fuera del sitio (${dominios.length ? dominios.join(', ') : 'falta sitio en sitio.yaml'}): se omite`);
     }
 
     for (const arista of n.aristas) {

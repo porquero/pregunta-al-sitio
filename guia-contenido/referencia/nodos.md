@@ -47,7 +47,7 @@ estado: borrador
 | `tipo` | sí | categoría libre (`servicio`, `producto`, `faq`, `proceso`…). Dos tienen efecto: `saludo` es la bienvenida del chat y no se ofrece en "¿Te refieres a A o B?"; el nodo con id `contacto` recibe las consultas sin respuesta |
 | `titulo` | sí | nombre del tema. Lo antes de la primera coma se usa en chips y en "¿Te refieres a…?", así que empieza por el nombre corto |
 | `respuesta_corta` | sí | lo que el chat muestra. 40 a 60 palabras |
-| `enlace` | no | destino de "Ver más": ruta del sitio (`/hosting`, `/servicios#hosting`) o URL `https://` |
+| `enlace` | no | destino de "Ver más": ruta del sitio (`/hosting`, `/servicios#hosting`) o URL `https://` del dominio de `sitio`. Otro dominio se omite |
 | `formato` | no | `texto` (por defecto) o `tarjeta` |
 | `variante` | con tarjeta | `servicio`, `producto`, `proceso` (items numerados), `cifras`, `caso`… |
 | `tarjeta` | no | `eyebrow`, `titulo`, `items` (textos u objetos `{titulo, texto, ruta}`), `cifras` (`{numero, etiqueta}`), `etiquetas`, `cta` (`{texto, destino}`) |
@@ -82,6 +82,15 @@ estado: borrador
 - Usa el tono del sitio. Sin exclamaciones, superlativos ni relleno comercial.
 - Admite Markdown en línea: `**negrita**`, `*cursiva*`, `[enlace](/ruta)` y `[texto](nodo:id)`.
 - Lo que falte: `[REDACTAR qué falta]` y `estado: borrador`.
+
+## Solo enlaces del sitio
+
+El visitante debe quedarse en el sitio. En la respuesta, el "Ver más", la tarjeta y los ítems, usa
+rutas del sitio (`/hosting`) o URL del dominio de `sitio` en `sitio.yaml` (y sus subdominios).
+`build` omite cualquier enlace a otro dominio: queda el texto, sin enlace. Si la fuente remite a
+otro sitio (una plataforma asociada, un producto con dominio propio), no lo enlaces: nombra el sitio
+en el texto o déjalo en el cuerpo del nodo, que el chat no muestra. `validar` avisa cada enlace que
+se omitirá: corrígelo en vez de dejarlo.
 
 ## Enlaces entre nodos
 
@@ -122,7 +131,7 @@ solapados gana el más largo, y hay un máximo de autoenlaces por respuesta.
 |---|---|---|
 | `autoenlazar` | `false` | enciende el autoenlace |
 | `autoenlazar_max` | `5` | autoenlaces por respuesta |
-| `autoenlazar_destino` | — | sin valor: si el nodo tiene `enlace` `https://`, se abre en otra pestaña; si no, se abre el nodo en el chat. `nodo` siempre abre el nodo; `enlace` siempre usa el `enlace` del nodo, si tiene |
+| `autoenlazar_destino` | `nodo` | `nodo` abre el nodo en el chat; `enlace` usa el `enlace` del nodo si es del sitio y, si no, también abre el nodo |
 
 Cuidado con los títulos que empiezan por una palabra común: `Seguridad, respaldo y soporte` se
 reconoce como "Seguridad" y enlazaría cualquier mención de seguridad. Reescribe la parte antes de la

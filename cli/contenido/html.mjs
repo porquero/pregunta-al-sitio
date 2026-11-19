@@ -16,6 +16,36 @@ export function urlSegura(url) {
   return null;
 }
 
+/**
+ * Dominios del sitio principal a partir de `sitio` en sitio.yaml: "misitio.cl", "https://www.misitio.cl/",
+ * "*misitio.cl*" o una lista de ellos. Se guardan sin esquema, ruta, "www." ni comodines.
+ */
+export function dominiosDe(sitio) {
+  const valores = sitio === undefined || sitio === null ? [] : [].concat(sitio);
+  return valores
+    .map((v) => String(v).trim().toLowerCase().replace(/\*/g, '').replace(/^[a-z]+:\/\//, '').split(/[/?#:]/)[0].replace(/^www\./, '').replace(/^\.+|\.+$/g, ''))
+    .filter(Boolean);
+}
+
+/**
+ * Filtro de URL para las respuestas del chat: el visitante no debe salir del sitio.
+ * Acepta rutas relativas, mailto: y tel:, y URL http(s) cuyo host es uno de los dominios o un subdominio
+ * suyo (cualquier ruta). Todo lo demás devuelve null y el enlace se omite (queda su texto).
+ */
+export function crearFiltroUrl(dominios = []) {
+  return (url) => {
+    const u = urlSegura(url);
+    if (!u || !/^https?:\/\//i.test(u)) return u;
+    let host;
+    try {
+      host = new URL(u).hostname.toLowerCase();
+    } catch {
+      return null;
+    }
+    return dominios.some((d) => host === d || host.endsWith(`.${d}`)) ? u : null;
+  };
+}
+
 function formato(escapado) {
   return escapado
     .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -38,7 +68,6 @@ export const textoVisible = (md) => String(md ?? '').replace(ENLACE_MD, '$1');
 
 // Tramos que el autoenlace no toca: código, negrita y cursiva explícitas.
 const PROTEGIDO = /`[^`]+`|\*\*[^*]+\*\*|(?<![*\w])\*[^*\s][^*]*\*/gu;
-const LETRA = /[\p{L}\p{N}]/u;
 
 /** Minúsculas y sin tildes, carácter a carácter: conserva las posiciones del texto original. */
 const plegar = (t) => [...t].map((c) => (c.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()[0] ?? c)).join('');
@@ -48,10 +77,12 @@ const escaparRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  * Prepara el autoenlace de un sitio.
  *   nombres  [{ nombre, id, enlace }]: los nombres enlazables de cada nodo del chat
  *   max      autoenlaces por respuesta
- *   destino  null (enlace https externo o, si no, el nodo), 'enlace' o 'nodo'
+ *   destino  'nodo' (por defecto) abre el nodo en el chat; 'enlace' usa el enlace del nodo si `url` lo
+ *            permite y, si no, también abre el nodo
+ *   url      filtro de URL (crearFiltroUrl); por defecto urlSegura
  * Devuelve una función (texto plano, id del nodo, estado) → HTML, o null si no hay nombres.
  */
-export function crearAutoenlace({ nombres = [], max = 5, destino = null } = {}) {
+export function crearAutoenlace({ nombres = [], max = 5, destino = null, url: filtro = urlSegura } = {}) {
   const porNombre = new Map();
   for (const n of nombres) {
     const clave = plegar(String(n.nombre ?? '').trim());
@@ -63,14 +94,8 @@ export function crearAutoenlace({ nombres = [], max = 5, destino = null } = {}) 
   const re = new RegExp(`(?<![\\p{L}\\p{N}])(?:${claves.map(escaparRe).join('|')})(?![\\p{L}\\p{N}])`, 'gu');
 
   const enlace = (n, etiqueta) => {
-    const externo = /^https:\/\//i.test(n.enlace ?? '');
-    const url = urlSegura(n.enlace);
-    if (url && (destino === 'enlace' || (destino !== 'nodo' && externo))) {
-      return externo
-        ? `<a href="${escapar(url)}" target="_blank" rel="noopener">${etiqueta}</a>`
-        : `<a href="${escapar(url)}">${etiqueta}</a>`;
-    }
-    return enlaceNodo(n.id, etiqueta);
+    const url = destino === 'enlace' ? filtro(n.enlace) : null;
+    return url ? `<a href="${escapar(url)}">${etiqueta}</a>` : enlaceNodo(n.id, etiqueta);
   };
 
   return (texto, propio, estado) => {
@@ -105,9 +130,10 @@ function tramo(texto, contexto) {
 /**
  * Markdown en línea a HTML seguro, sin párrafo envolvente.
  * opciones.existe(id) dice si un enlace nodo: tiene destino en el chat (sin destino queda como texto);
- * opciones.autoenlace (de crearAutoenlace) y opciones.id enlazan la primera mención de otros nodos.
+ * opciones.autoenlace (de crearAutoenlace) y opciones.id enlazan la primera mención de otros nodos;
+ * opciones.url filtra los destinos (crearFiltroUrl): un enlace rechazado queda como su texto.
  */
-export function enLinea(md, { existe = () => true, autoenlace = null, id = null } = {}) {
+export function enLinea(md, { existe = () => true, autoenlace = null, id = null, url: filtro = urlSegura } = {}) {
   const texto = String(md ?? '');
   const contexto = { autoenlace, id, estado: { enlazados: new Set(), autoenlaces: 0 } };
   let salida = '';
@@ -116,7 +142,7 @@ export function enLinea(md, { existe = () => true, autoenlace = null, id = null 
     salida += tramo(texto.slice(desde, m.index), contexto);
     const etiqueta = formato(escapar(m[1]));
     const nodo = NODO.exec(m[2])?.[1];
-    const url = nodo ? null : urlSegura(m[2]);
+    const url = nodo ? null : filtro(m[2]);
     if (nodo && existe(nodo)) {
       salida += enlaceNodo(nodo, etiqueta);
       contexto.estado.enlazados.add(nodo); // Ya enlazado a mano: el autoenlace no lo repite.
@@ -128,7 +154,7 @@ export function enLinea(md, { existe = () => true, autoenlace = null, id = null 
 
 const esObjeto = (v) => v !== null && typeof v === 'object';
 
-function itemsHtml(variante, t) {
+function itemsHtml(variante, t, filtro) {
   const items = Array.isArray(t.items) ? t.items : [];
   const cifras = Array.isArray(t.cifras) ? t.cifras : [];
   if (variante === 'proceso' && items.length) {
@@ -145,7 +171,7 @@ function itemsHtml(variante, t) {
   if (!items.length) return '';
   if (esObjeto(items[0])) {
     const filas = items.map((i) => {
-      const url = urlSegura(i?.ruta);
+      const url = filtro(i?.ruta);
       const titulo = url ? `<a href="${escapar(url)}">${escapar(i.titulo)}</a>` : escapar(i?.titulo);
       return `<div><dt>${titulo}</dt>${i?.texto ? `<dd>${escapar(i.texto)}</dd>` : ''}</div>`;
     });
@@ -157,21 +183,22 @@ function itemsHtml(variante, t) {
 /**
  * Bloque de respuesta del nodo: antetítulo, título, respuesta corta y lo que traiga la tarjeta
  * (items, cifras, etiquetas, llamado a la acción). Los chips y "Ver más" los dibuja el widget.
- * `sitio.nombre` es el antetítulo por defecto. `enlaces` son las opciones de enLinea (existe, autoenlace).
+ * `sitio.nombre` es el antetítulo por defecto. `enlaces` son las opciones de enLinea (existe, autoenlace, url); `url` filtra también la tarjeta.
  */
 export function respuestaHtml(nodo, sitio = {}, enlaces = {}) {
   const t = esObjeto(nodo.tarjeta) ? nodo.tarjeta : {};
+  const filtro = enlaces.url ?? urlSegura;
   const variante = nodo.formato === 'tarjeta' ? nodo.variante || 'servicio' : 'texto';
   const partes = [];
   const antetitulo = t.eyebrow ?? sitio.nombre;
   if (antetitulo) partes.push(`<p class="pas-antetitulo">${escapar(antetitulo)}</p>`);
   partes.push(`<h2 class="pas-titulo">${escapar(t.titulo ?? nodo.titulo)}</h2>`);
   partes.push(`<p class="pas-texto">${enLinea(nodo.respuestaCorta, { ...enlaces, id: nodo.id })}</p>`);
-  partes.push(itemsHtml(variante, t));
+  partes.push(itemsHtml(variante, t, filtro));
   if (Array.isArray(t.etiquetas) && t.etiquetas.length) {
     partes.push(`<ul class="pas-etiquetas" aria-label="Temas">${t.etiquetas.map((e) => `<li>${escapar(e)}</li>`).join('')}</ul>`);
   }
-  const url = esObjeto(t.cta) ? urlSegura(t.cta.destino) : null;
+  const url = esObjeto(t.cta) ? filtro(t.cta.destino) : null;
   if (url) partes.push(`<p class="pas-cta"><a href="${escapar(url)}">${escapar(t.cta.texto)}</a></p>`);
   return `<article class="pas-respuesta pas-respuesta--${escapar(variante)}" data-nodo="${escapar(nodo.id)}">${partes.join('')}</article>`;
 }

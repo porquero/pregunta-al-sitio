@@ -1,7 +1,7 @@
 // build: contenido del sitio (sitio.yaml + nodos/*.md) → indice.json estático para el motor y el widget.
 import { createHash } from 'node:crypto';
 import { leerSitio, leerNodos, nombresEnlazables } from './contenido/leer.mjs';
-import { respuestaHtml, crearAutoenlace } from './contenido/html.mjs';
+import { respuestaHtml, crearAutoenlace, crearFiltroUrl, dominiosDe } from './contenido/html.mjs';
 
 const MAX_CHIPS = 4;
 const MAX_CHIPS_ARISTAS = 3;
@@ -38,13 +38,17 @@ export function construirIndice(dir, { borradores = false } = {}) {
   const visibles = todos.filter((n) => borradores || n.estado === 'aprobado');
   const enChat = visibles.filter((n) => n.enChat);
   const porId = new Map(enChat.map((n) => [n.id, n]));
+  // Las respuestas solo enlazan al sitio principal (sitio.yaml > sitio): el resto se omite.
+  const url = crearFiltroUrl(dominiosDe(sitio.sitio));
   const enlaces = {
+    url,
     existe: (id) => porId.has(id),
     autoenlace: sitio.autoenlazar
       ? crearAutoenlace({
           nombres: enChat.flatMap((n) => nombresEnlazables(n).map((nombre) => ({ nombre, id: n.id, enlace: n.enlace }))),
           max: sitio.autoenlazar_max ?? 5,
           destino: sitio.autoenlazar_destino ?? null,
+          url,
         })
       : null,
   };
@@ -61,7 +65,7 @@ export function construirIndice(dir, { borradores = false } = {}) {
     // Solo aristas hacia nodos que el chat puede mostrar.
     aristas: n.aristas.filter((a) => porId.has(a.a)),
     chips: n.chips.map((c) => (c.a ? { texto: c.texto, a: c.a } : c.texto)),
-    enlace: n.enlace,
+    enlace: url(n.enlace), // "Ver más": también solo dentro del sitio.
     seguimiento: seguimientoDe(n, porId),
     respuesta: respuestaHtml(n, sitio, enlaces),
   }));

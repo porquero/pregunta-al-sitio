@@ -17,6 +17,12 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 
 ## Último trabajo (2026-11-19)
 
+- Regla: el chat solo enlaza al sitio principal (`sitio: misitio.cl` en `sitio.yaml`, subdominios y
+  cualquier ruta; también rutas relativas, `mailto:` y `tel:`). `build` omite el resto en la
+  respuesta, la tarjeta y el "Ver más"; `validar` lo avisa; `iniciar --sitio`. El autoenlace ya no
+  abre pestañas nuevas: por defecto abre el nodo en el chat. En Playa (`sitio: playaspa.cl`), Wotel
+  pierde su "Ver más" a wotel.cl. Probado en el navegador.
+
 - Enlaces entre nodos: `[texto](nodo:id)` y autoenlace opcional (`autoenlazar` en `sitio.yaml`,
   `alias`, sinónimos con `+`). Con Playa: 14 enlaces, +1,4 % de índice, mismas métricas. Probado en el
   navegador (clic y Espacio abren el nodo sin navegar).
@@ -60,7 +66,8 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 | 4 | `evaluar` revisa el set (ids, tipos, repetidas, composición, nodos sin consultas) y muestra errores de ajuste | ✅ Tests |
 | 4 | README con inicio rápido; `build --widget` | ✅ Pasos probados en carpeta temporal + test |
 | 4 | Commit de la fase 4 | ✅ `9dd9f1d` |
-| 4+ | Enlaces entre nodos: `nodo:`, autoenlace, `validar` de ids rotos, clic en el widget | ✅ Tests + navegador · commit siguiente al `0e4b4da` |
+| 4+ | Enlaces entre nodos: `nodo:`, autoenlace, `validar` de ids rotos, clic en el widget | ✅ Tests + navegador · `975eb88` |
+| 4+ | Solo enlaces del sitio principal (`sitio` en `sitio.yaml`) | ✅ Tests + navegador · commit siguiente al `975eb88` |
 | 5 | Sitio de ejemplo, documentación, empaquetado y publicación | ⏳ |
 | 6 | (Opcional) Playa migra a la librería | ⏳ |
 
@@ -81,6 +88,12 @@ Objetivo por sitio: top-3 ≥ 90 %, precisión alta ≥ 95 %, fuga ≤ 3 %, fals
 - **Autoenlace con Playa:** el título hasta la coma genera falsos positivos con palabras comunes
   ("Seguridad, respaldo…" enlaza "seguridad"; "Nosotros, un socio…" enlaza "nosotros"). Por eso queda
   apagado por defecto. Si Playa lo enciende, hay que reescribir esos títulos.
+
+- **Wotel en Playa:** wotel.cl es otro dominio, así que su "Ver más" se omite. Si se quiere
+  conservar, `sitio` acepta una lista (`[playaspa.cl, wotel.cl]`), pero eso contradice la regla de que
+  el visitante no salga del sitio. Decidir en Playa.
+- **`mailto:` y `tel:`** se permiten (no abren otro sitio web). Si se quieren prohibir, es una línea en
+  `crearFiltroUrl`.
 
 ## Cómo retomar
 

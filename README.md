@@ -47,7 +47,7 @@ Desde ahí, `pregunta-al-sitio` funciona en cualquier carpeta.
 **2. Crea la carpeta de contenido e instala la guía** (dentro de `mi-sitio/`):
 
 ```bash
-pregunta-al-sitio iniciar contenido --nombre "Mi Sitio"
+pregunta-al-sitio iniciar contenido --nombre "Mi Sitio" --sitio misitio.cl
 ```
 
 ```bash
@@ -134,7 +134,7 @@ táctiles de 40 px o más, respeta `prefers-reduced-motion` y ocupa toda la pant
 
 ```
 contenido/
-  sitio.yaml       nombre, diccionario, ambito, validar y config (esta última la escribe calibrar)
+  sitio.yaml       nombre, sitio (dominio), diccionario, ambito, validar y config (esta última la escribe calibrar)
   nodos/*.md       un nodo por archivo
   preguntas.yaml   set de evaluación
   informes/        inventario, mapa de nodos, conflictos y pendientes
@@ -162,6 +162,15 @@ estado: aprobado                # borrador | aprobado
 ---
 ```
 
+### Solo enlaces del sitio
+
+El chat no debe sacar al visitante del sitio. `sitio` en `sitio.yaml` es el dominio principal
+(`sitio: misitio.cl`; acepta `https://www.misitio.cl`, `*misitio.cl*` o una lista). Al armar el
+índice, `build` deja en las respuestas solo los enlaces a ese dominio o a sus subdominios, con
+cualquier ruta, más las rutas relativas, `mailto:` y `tel:`. El resto se omite: un `[texto](url)`
+queda como texto y el "Ver más", el botón de la tarjeta o el enlace de un ítem desaparecen. Sin
+`sitio`, solo quedan las rutas relativas. `validar` avisa cada enlace que se omitirá.
+
 ### Enlaces entre nodos
 
 Una respuesta puede abrir otro nodo en el mismo chat: `[Hotel Casona Distante](nodo:casona-distante)`.
@@ -174,7 +183,7 @@ cada respuesta. Reconoce el título hasta la primera coma, los `alias` y los `si
 # sitio.yaml
 autoenlazar: true
 autoenlazar_max: 5          # autoenlaces por respuesta
-# autoenlazar_destino: nodo # o enlace; sin valor, un enlace https abre otra pestaña y el resto abre el nodo
+# autoenlazar_destino: enlace # usa el "enlace" del nodo si es del sitio; por defecto abre el nodo en el chat
 
 # nodos/casona-distante.md
 titulo: Hotel Casona Distante, frente al mar
@@ -193,7 +202,7 @@ El detalle de cada campo, del diccionario, del ámbito y del set de preguntas es
 
 | Comando | Qué hace |
 |---|---|
-| `iniciar <carpeta> --nombre "…"` | crea la carpeta de contenido con plantillas; no sobrescribe |
+| `iniciar <carpeta> --nombre "…" --sitio <dominio>` | crea la carpeta de contenido con plantillas; no sobrescribe |
 | `skill [carpeta]` | copia la guía a `<carpeta>/.claude/skills/pregunta-al-sitio-contenido` |
 | `validar <carpeta>` | revisa los nodos: estructura y reglas de estilo de `sitio.yaml > validar`; sale con 1 si hay errores |
 | `build <carpeta> -o <ruta> [--widget]` | arma `indice.json` con los nodos aprobados; `--widget` copia `pregunta-al-sitio.js` al lado |

@@ -25,6 +25,7 @@ const AYUDA = `Uso: pregunta-al-sitio <comando> [carpeta] [opciones]
 Comandos:
   iniciar   crea la carpeta de un sitio nuevo con plantillas (no sobrescribe)
               --nombre <texto>      nombre del sitio
+              --sitio <dominio>     dominio principal (misitio.cl): el chat solo enlaza ahí
   skill     copia la guía de contenido como skill de Claude Code
               (en <carpeta>/.claude/skills/pregunta-al-sitio-contenido)
   build     arma indice.json desde sitio.yaml y nodos/*.md
@@ -54,6 +55,7 @@ const OPCIONES = {
   json: { type: 'string' },
   escribir: { type: 'boolean', default: false },
   nombre: { type: 'string' },
+  sitio: { type: 'string' },
   widget: { type: 'boolean', default: false },
   ayuda: { type: 'boolean', short: 'h', default: false },
 };
@@ -74,7 +76,7 @@ const comandos = {
   },
 
   iniciar(dir, v) {
-    const creados = iniciarSitio(dir, { nombre: v.nombre });
+    const creados = iniciarSitio(dir, { nombre: v.nombre, sitio: v.sitio });
     for (const f of creados) console.log(`creado  ${join(dir, f)}`);
     console.log(
       '\nSiguiente: deja las páginas y documentos del sitio en fuentes/, corre `pregunta-al-sitio skill`' +

@@ -31,12 +31,17 @@ const DERIVAR = [
   'ofertas laborales', 'curriculum', 'cv', 'postular', 'practica profesional',
 ];
 
-export function plantillaSitio(nombre) {
+export function plantillaSitio(nombre, dominio = null) {
   const marca = nombre.toLowerCase();
   return `# Contenido de "${nombre}" para pregunta-al-sitio.
 # Guía: guia-contenido/SKILL.md del paquete. Comandos: validar, build, evaluar, calibrar.
 
 nombre: ${nombre}
+
+# Dominio principal del sitio (misitio.cl). Las respuestas del chat solo enlazan a él y a sus
+# subdominios, con cualquier ruta; los enlaces a otros sitios se omiten para que el visitante no salga.
+# Sin dominio, solo quedan las rutas relativas (/contacto). Admite una lista.
+sitio: ${dominio ?? ''}
 
 # Parámetros del motor y umbrales de zona. Los escribe \`pregunta-al-sitio calibrar --escribir\`.
 config: {}
@@ -156,10 +161,10 @@ consultas:
 `;
 
 /** Crea la carpeta. No sobrescribe: si ya hay un sitio.yaml, lanza un Error. */
-export function iniciarSitio(dir, { nombre = 'Mi sitio' } = {}) {
+export function iniciarSitio(dir, { nombre = 'Mi sitio', sitio = null } = {}) {
   if (existsSync(join(dir, 'sitio.yaml'))) throw new Error(`ya existe ${join(dir, 'sitio.yaml')}`);
   const archivos = {
-    'sitio.yaml': plantillaSitio(nombre),
+    'sitio.yaml': plantillaSitio(nombre, sitio),
     'nodos/inicio.md': plantillaInicio(nombre),
     'nodos/contacto.md': plantillaContacto(nombre),
     'preguntas.yaml': PLANTILLA_PREGUNTAS,
