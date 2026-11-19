@@ -1,7 +1,7 @@
 // build: contenido del sitio (sitio.yaml + nodos/*.md) → indice.json estático para el motor y el widget.
 import { createHash } from 'node:crypto';
-import { leerSitio, leerNodos } from './contenido/leer.mjs';
-import { respuestaHtml } from './contenido/html.mjs';
+import { leerSitio, leerNodos, nombresEnlazables } from './contenido/leer.mjs';
+import { respuestaHtml, crearAutoenlace } from './contenido/html.mjs';
 
 const MAX_CHIPS = 4;
 const MAX_CHIPS_ARISTAS = 3;
@@ -38,6 +38,16 @@ export function construirIndice(dir, { borradores = false } = {}) {
   const visibles = todos.filter((n) => borradores || n.estado === 'aprobado');
   const enChat = visibles.filter((n) => n.enChat);
   const porId = new Map(enChat.map((n) => [n.id, n]));
+  const enlaces = {
+    existe: (id) => porId.has(id),
+    autoenlace: sitio.autoenlazar
+      ? crearAutoenlace({
+          nombres: enChat.flatMap((n) => nombresEnlazables(n).map((nombre) => ({ nombre, id: n.id, enlace: n.enlace }))),
+          max: sitio.autoenlazar_max ?? 5,
+          destino: sitio.autoenlazar_destino ?? null,
+        })
+      : null,
+  };
 
   const nodos = enChat.map((n) => ({
     id: n.id,
@@ -53,7 +63,7 @@ export function construirIndice(dir, { borradores = false } = {}) {
     chips: n.chips.map((c) => (c.a ? { texto: c.texto, a: c.a } : c.texto)),
     enlace: n.enlace,
     seguimiento: seguimientoDe(n, porId),
-    respuesta: respuestaHtml(n, sitio),
+    respuesta: respuestaHtml(n, sitio, enlaces),
   }));
 
   // El texto de derivación se escribe en el nodo contacto.

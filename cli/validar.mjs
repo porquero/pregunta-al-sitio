@@ -14,6 +14,7 @@
 //   reglas      [{ patron, mensaje, nivel: error|aviso, campo: todo|respuesta|respuesta_y_cuerpo, sensible }]
 //               expresiones regulares propias del sitio; sin "sensible" no distinguen mayúsculas
 import { leerSitio, leerNodos, ESTADOS, FORMATOS } from './contenido/leer.mjs';
+import { idsEnlazados, textoVisible } from './contenido/html.mjs';
 
 export const VALIDAR_D = {
   respuesta: { palabras_min: 40, palabras_max: 60, nombrar: null, nombrar_salvo: ['saludo'] },
@@ -65,6 +66,9 @@ export function validarNodos(nodos, sitio = {}, erroresLectura = []) {
     }
     porId.set(n.id, n);
   }
+  if (sitio.autoenlazar_destino != null && !['enlace', 'nodo'].includes(sitio.autoenlazar_destino)) {
+    errores.push(`sitio.yaml: autoenlazar_destino '${sitio.autoenlazar_destino}' inválido (enlace, nodo)`);
+  }
   if (!porId.has('contacto')) avisos.push('sitio: no hay un nodo con id "contacto" (destino de las consultas sin respuesta)');
 
   for (const n of porId.values()) {
@@ -77,7 +81,8 @@ export function validarNodos(nodos, sitio = {}, erroresLectura = []) {
     if (!FORMATOS.includes(n.formato)) e(`formato '${n.formato}' inválido (${FORMATOS.join(', ')})`);
     if (n.formato === 'tarjeta' && r.variantes.length && !r.variantes.includes(n.variante)) e('formato tarjeta sin variante válida');
 
-    const palabras = contarPalabras(n.respuestaCorta);
+    // Solo cuenta el texto visible: de [texto](url) cuenta "texto".
+    const palabras = contarPalabras(textoVisible(n.respuestaCorta));
     const { palabras_min: min, palabras_max: max, nombrar, nombrar_salvo: salvo } = r.respuesta;
     if (palabras < min || palabras > max) e(`respuesta_corta tiene ${palabras} palabras (${min} a ${max})`);
     if (nombrar && !(salvo ?? []).includes(n.tipo) && !n.respuestaCorta.includes(nombrar)) a(`respuesta_corta no nombra a ${nombrar}`);
@@ -95,6 +100,14 @@ export function validarNodos(nodos, sitio = {}, erroresLectura = []) {
       if (!destino) e(`chip '${chip.texto}' hacia '${chip.a}', que no existe`);
       else if (chip.a === n.id) e(`chip '${chip.texto}' hacia sí mismo`);
       else if (!destino.enChat) e(`chip '${chip.texto}' hacia '${chip.a}', que no está en el chat`);
+    }
+
+    // Enlaces [texto](nodo:id) de la respuesta corta.
+    for (const id of idsEnlazados(n.respuestaCorta)) {
+      const destino = porId.get(id);
+      if (!destino) e(`enlace hacia '${id}', que no existe`);
+      else if (id === n.id) e('enlace hacia sí mismo');
+      else if (!destino.enChat) e(`enlace hacia '${id}', que no está en el chat`);
     }
 
     for (const arista of n.aristas) {

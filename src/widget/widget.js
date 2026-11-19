@@ -11,6 +11,7 @@ import { crearDialogo } from '../motor/dialogo.js';
 import { crearRender } from './render.js';
 import { normalizarOpciones, opcionesDeAtributos } from './opciones.js';
 import { ESTILOS } from './estilos.js';
+import { accionDeClic } from './acciones.js';
 
 const ICONOS = {
   chat: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>',
@@ -117,12 +118,18 @@ export class PreguntaAlSitioElemento extends HTMLElement {
       this.preguntar(texto);
     });
     p.log.addEventListener('click', (e) => {
-      const b = e.target.closest('button[data-nodo], button[data-q], button[data-equipo]');
-      if (!b) return;
-      const etiqueta = b.textContent.trim();
-      if (b.dataset.nodo) this.#dialogo.abrirNodo(b.dataset.nodo, etiqueta);
-      else if (b.dataset.q !== undefined) this.preguntar(b.dataset.q);
-      else this.#dialogo.escribirAlEquipo(b.dataset.equipo || this.#ultimaConsulta, etiqueta);
+      const a = accionDeClic(e.target);
+      if (!a) return;
+      if (a.enlace) e.preventDefault();
+      if (a.tipo === 'nodo') this.#dialogo.abrirNodo(a.valor, a.etiqueta);
+      else if (a.tipo === 'consulta') this.preguntar(a.valor);
+      else this.#dialogo.escribirAlEquipo(a.valor || this.#ultimaConsulta, a.etiqueta);
+    });
+    // Los enlaces que abren un nodo tienen role="button": como un botón, también responden a Espacio.
+    p.log.addEventListener('keydown', (e) => {
+      if (e.key !== ' ' || !e.target.matches?.('a[data-nodo]')) return;
+      e.preventDefault();
+      e.target.click();
     });
   }
 

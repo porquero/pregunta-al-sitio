@@ -53,7 +53,8 @@ estado: borrador
 | `tarjeta` | no | `eyebrow`, `titulo`, `items` (textos u objetos `{titulo, texto, ruta}`), `cifras` (`{numero, etiqueta}`), `etiquetas`, `cta` (`{texto, destino}`) |
 | `preguntas` | sí | 8 a 12 formulaciones de visitante (mínimo 6) |
 | `keywords` | sí | términos que identifican el tema |
-| `sinonimos` | no | otras formas de nombrar el tema, propias de este nodo |
+| `sinonimos` | no | otras formas de nombrar el tema, propias de este nodo. Con `+` delante (`+Casona`) también es un nombre enlazable |
+| `alias` | no | nombres enlazables que no son sinónimos de búsqueda (ver [Enlaces entre nodos](#enlaces-entre-nodos)) |
 | `aristas` | no | relaciones con otros nodos: `{a, tipo, peso}` |
 | `chips` | no | sugerencias después de la respuesta: texto (se pregunta al chat) o `{texto, a}` (abre el nodo `a`). Sin chips, el widget ofrece los destinos de las tres aristas de mayor peso |
 | `publicacion` | no | `{ chat: false }` deja el nodo fuera del chat |
@@ -79,8 +80,54 @@ estado: borrador
   `validar` avisa si falta (`validar.respuesta.nombrar` en `sitio.yaml`).
 - Responde la pregunta en la primera frase. Lo demás, en orden de importancia.
 - Usa el tono del sitio. Sin exclamaciones, superlativos ni relleno comercial.
-- Admite Markdown en línea: `**negrita**`, `*cursiva*` y `[enlace](/ruta)`.
+- Admite Markdown en línea: `**negrita**`, `*cursiva*`, `[enlace](/ruta)` y `[texto](nodo:id)`.
 - Lo que falte: `[REDACTAR qué falta]` y `estado: borrador`.
+
+## Enlaces entre nodos
+
+Cuando una respuesta menciona otro tema del chat, la mención puede abrir ese nodo en el mismo chat,
+sin salir de la página.
+
+**A mano**, con `nodo:` como destino:
+
+```yaml
+respuesta_corta: >-
+  En Acme alojamos a los huéspedes del [Hotel Casona Distante](nodo:casona-distante) y del
+  [Refugio Norte](nodo:refugio-norte), con traslado desde el aeropuerto incluido.
+```
+
+`validar` da error si el id no existe, si el nodo no está en el chat (`publicacion.chat: false`) o si
+es el mismo nodo. El largo de 40 a 60 palabras cuenta solo el texto visible del enlace.
+
+**Automático**, con `autoenlazar: true` en `sitio.yaml` (por defecto está apagado). En cada respuesta,
+`build` enlaza la **primera** mención de cada otro nodo. Un nodo se reconoce por:
+
+- su `titulo` hasta la primera coma (`Hotel Casona Distante, frente al mar` → `Hotel Casona Distante`),
+- sus `alias`,
+- sus `sinonimos` con `+` delante. El `+` solo marca el nombre como enlazable; el buscador usa el
+  sinónimo sin él.
+
+```yaml
+# nodos/casona-distante.md
+titulo: Hotel Casona Distante, frente al mar
+alias: [la Casona]
+sinonimos: [+Casona Distante, hospedaje en la costa]
+```
+
+Reglas: palabras completas, sin distinguir mayúsculas ni tildes; el nodo no se enlaza a sí mismo; el
+texto dentro de un enlace, `**negrita**`, `*cursiva*` o `` `código` `` no se toca; ante nombres
+solapados gana el más largo, y hay un máximo de autoenlaces por respuesta.
+
+| Clave de `sitio.yaml` | Por defecto | Uso |
+|---|---|---|
+| `autoenlazar` | `false` | enciende el autoenlace |
+| `autoenlazar_max` | `5` | autoenlaces por respuesta |
+| `autoenlazar_destino` | — | sin valor: si el nodo tiene `enlace` `https://`, se abre en otra pestaña; si no, se abre el nodo en el chat. `nodo` siempre abre el nodo; `enlace` siempre usa el `enlace` del nodo, si tiene |
+
+Cuidado con los títulos que empiezan por una palabra común: `Seguridad, respaldo y soporte` se
+reconoce como "Seguridad" y enlazaría cualquier mención de seguridad. Reescribe la parte antes de la
+coma (`Seguridad del hosting, respaldo y soporte`) o deja el autoenlace apagado y usa enlaces a mano.
+Después de `build`, revisa qué se enlazó. El autoenlace no cambia la búsqueda: `evaluar` da las mismas métricas.
 
 ## Preguntas, keywords y sinónimos
 

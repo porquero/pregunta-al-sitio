@@ -162,6 +162,30 @@ estado: aprobado                # borrador | aprobado
 ---
 ```
 
+### Enlaces entre nodos
+
+Una respuesta puede abrir otro nodo en el mismo chat: `[Hotel Casona Distante](nodo:casona-distante)`.
+`validar` da error si el id no existe o no está en el chat.
+
+Con `autoenlazar: true` en `sitio.yaml`, `build` enlaza solo la primera mención de cada otro nodo en
+cada respuesta. Reconoce el título hasta la primera coma, los `alias` y los `sinonimos` marcados con `+`:
+
+```yaml
+# sitio.yaml
+autoenlazar: true
+autoenlazar_max: 5          # autoenlaces por respuesta
+# autoenlazar_destino: nodo # o enlace; sin valor, un enlace https abre otra pestaña y el resto abre el nodo
+
+# nodos/casona-distante.md
+titulo: Hotel Casona Distante, frente al mar
+alias: [la Casona]
+sinonimos: [+Casona Distante, hospedaje en la costa]
+```
+
+El autoenlace no cambia la búsqueda (mismas métricas en `evaluar`). Con Playa agrega 14 enlaces y el
+índice crece un 1,4 % (0,2 KB gzip). Reglas completas en
+[`referencia/nodos.md`](guia-contenido/referencia/nodos.md#enlaces-entre-nodos).
+
 El detalle de cada campo, del diccionario, del ámbito y del set de preguntas está en la guía:
 [`guia-contenido/`](guia-contenido/SKILL.md).
 

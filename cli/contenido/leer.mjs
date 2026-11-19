@@ -27,6 +27,9 @@ function enlaceDe(d) {
   return d.pagina_padre ? String(d.pagina_padre) : null;
 }
 
+/** Nombres con que el autoenlace reconoce un nodo: el título hasta la primera coma, los alias y los sinónimos con +. */
+export const nombresEnlazables = (n) => [n.titulo.split(',')[0].trim(), ...n.alias, ...n.sinonimosEnlazables].filter(Boolean);
+
 /** Texto de un archivo .md → nodo normalizado. Lanza un Error si falta lo indispensable. */
 export function parsearNodo(contenido, archivo = 'nodo.md') {
   const t = String(contenido).replace(/^﻿/, '').replace(/\r\n/g, '\n');
@@ -47,7 +50,10 @@ export function parsearNodo(contenido, archivo = 'nodo.md') {
     tarjeta: d.tarjeta && typeof d.tarjeta === 'object' ? d.tarjeta : {},
     preguntas: lista(d.preguntas).map(String),
     keywords: lista(d.keywords).map(String),
-    sinonimos: lista(d.sinonimos).map(String),
+    // Un sinónimo con prefijo + también es un nombre enlazable del nodo (ver nombresEnlazables).
+    sinonimos: lista(d.sinonimos).map((s) => String(s).replace(/^\+\s*/, '')),
+    alias: lista(d.alias).map(String),
+    sinonimosEnlazables: lista(d.sinonimos).map(String).filter((s) => s.startsWith('+')).map((s) => s.slice(1).trim()),
     aristas: lista(d.aristas).map((a) => ({ a: String(a?.a ?? ''), tipo: String(a?.tipo ?? 'profundiza'), peso: Number(a?.peso ?? 0.5) })),
     // Un chip es un texto que se consulta al motor, o { texto, a } que abre el nodo "a" directamente.
     chips: lista(d.chips).map((c) =>

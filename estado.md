@@ -15,7 +15,13 @@ Extraída del chat de Playa SPA. v1 solo español. Licencia MIT.
 Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. Sin remoto todavía
 (se publicará en GitHub; no crear el remoto ni hacer push sin preguntar).
 
-## Último trabajo (2026-11-18)
+## Último trabajo (2026-11-19)
+
+- Enlaces entre nodos: `[texto](nodo:id)` y autoenlace opcional (`autoenlazar` en `sitio.yaml`,
+  `alias`, sinónimos con `+`). Con Playa: 14 enlaces, +1,4 % de índice, mismas métricas. Probado en el
+  navegador (clic y Espacio abren el nodo sin navegar).
+
+## Trabajo del 2026-11-18
 
 - Fase 4 (guía de contenido) escrita: skill en `guia-contenido/` con 4 referencias, comandos `iniciar`
   y `skill`, y revisión del set de preguntas dentro de `evaluar`. La guía todavía no se ha usado de
@@ -54,6 +60,7 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 | 4 | `evaluar` revisa el set (ids, tipos, repetidas, composición, nodos sin consultas) y muestra errores de ajuste | ✅ Tests |
 | 4 | README con inicio rápido; `build --widget` | ✅ Pasos probados en carpeta temporal + test |
 | 4 | Commit de la fase 4 | ✅ `9dd9f1d` |
+| 4+ | Enlaces entre nodos: `nodo:`, autoenlace, `validar` de ids rotos, clic en el widget | ✅ Tests + navegador · commit siguiente al `0e4b4da` |
 | 5 | Sitio de ejemplo, documentación, empaquetado y publicación | ⏳ |
 | 6 | (Opcional) Playa migra a la librería | ⏳ |
 
@@ -70,6 +77,10 @@ Objetivo por sitio: top-3 ≥ 90 %, precisión alta ≥ 95 %, fuga ≤ 3 %, fals
   Se corrige en Playa, no aquí: el fixture refleja el set actual.
 - **`dist/` no se versiona:** se genera al publicar en npm (`prepublishOnly`). Si se quiere servir
   desde GitHub vía jsDelivr sin npm, habría que commitearlo en cada versión.
+
+- **Autoenlace con Playa:** el título hasta la coma genera falsos positivos con palabras comunes
+  ("Seguridad, respaldo…" enlaza "seguridad"; "Nosotros, un socio…" enlaza "nosotros"). Por eso queda
+  apagado por defecto. Si Playa lo enciende, hay que reescribir esos títulos.
 
 ## Cómo retomar
 
