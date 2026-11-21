@@ -28,7 +28,45 @@ export function metricas(filas) {
     falsoRechazo: pct(soloNodo.filter(terminaEnContacto).length, soloNodo.length),
     ruidoRespondido: pct(ajenasContacto.filter(respondeConNodo).length, ajenasContacto.length),
     aciertoTotal: pct(filas.filter(correcta).length, filas.length),
+    // Denominadores de cada tasa, para los intervalos de confianza.
+    base: { top1: deNodo.length, top3: deNodo.length, precisionAlta: altas.length, fuga: generales.length, falsoRechazo: soloNodo.length },
   };
+}
+
+/** Intervalo de Wilson al 95 % para una proporción p medida sobre n casos: [inferior, superior]. */
+export function wilson(p, n, z = 1.96) {
+  if (!n) return [0, 1];
+  const z2 = z * z;
+  const centro = (p + z2 / (2 * n)) / (1 + z2 / n);
+  const radio = (z * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n))) / (1 + z2 / n);
+  return [Math.max(0, centro - radio), Math.min(1, centro + radio)];
+}
+
+/** Validación con menos consultas que esto: cada error mueve demasiado las métricas. */
+export const VALIDACION_MIN = 100;
+/** Diferencia de top-3 entre ajuste y validación sobre la que se avisa de sobreajuste (puntos). */
+export const SOBREAJUSTE_MAX = 0.08;
+
+/** Avisos sobre la confianza de la validación: tamaño y diferencia con el ajuste. */
+export function avisosValidacion(ajuste, validacion) {
+  const avisos = [];
+  if (validacion.n < VALIDACION_MIN) {
+    avisos.push(`la validación tiene ${validacion.n} consultas (menos de ${VALIDACION_MIN}): un error mueve el top-3 en ${(100 / (validacion.base.top3 || 1)).toFixed(1)} puntos; agrega consultas al set`);
+  }
+  const brecha = ajuste.top3 - validacion.top3;
+  if (brecha > SOBREAJUSTE_MAX) {
+    avisos.push(`top-3 de ajuste ${p(ajuste.top3)} y de validación ${p(validacion.top3)} (${(brecha * 100).toFixed(1)} puntos): probable sobreajuste del contenido al set`);
+  }
+  return avisos;
+}
+
+/** Métricas de validación con su intervalo de Wilson al 95 %. */
+export function intervalos(m) {
+  const linea = (clave, nombre) => {
+    const [a, b] = wilson(m[clave], m.base[clave]);
+    return `${nombre} ${p(m[clave])} [${p(a)}–${p(b)}, n ${m.base[clave]}]`;
+  };
+  return [linea('top3', 'top-3'), linea('top1', 'top-1'), linea('precisionAlta', 'prec. alta'), linea('falsoRechazo', 'falso rechazo'), linea('fuga', 'fuga')].join(' · ');
 }
 
 /** Objetivos de calidad de un sitio. */
@@ -48,7 +86,7 @@ export const cumple = (m, o = OBJETIVO) =>
 export function filasDe(resolvedor, consultas) {
   return consultas.map((c) => {
     const res = resolvedor.resolver(c.consulta);
-    const lista = res.zona === 'baja' ? ['contacto'] : resolvedor.buscar(c.consulta).map((x) => x.id);
+    const lista = res.zona === 'baja' ? ['contacto'] : res.orden;
     return { c, res, d: { zona: res.zona === 'baja' ? 'contacto' : res.zona, lista } };
   });
 }

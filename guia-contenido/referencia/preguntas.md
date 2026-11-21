@@ -34,8 +34,14 @@ cambiaba el primer resultado del 2,4 % de las demás cuando el nodo anterior no 
 no puede medir ese costo. `evaluar` informa su acierto aparte ("Seguimiento … acierto"); sirven para ver
 si una pregunta elíptica ("¿y cuánto dura?") se entiende sola.
 
-Total: al menos 150. `evaluar` avisa si faltan consultas en total, generales, de frontera, de necesidad
-o ajenas, y si hay nodos sin ninguna consulta. Los mínimos de coloquial, tipeo y múltiple los cuidas tú.
+Total: al menos 150, y que la partición de validación quede con 100 o más (unas 250 en total): con menos,
+un error mueve las métricas más de un punto. `evaluar` avisa si faltan consultas en total, generales, de
+frontera, de necesidad o ajenas, si menos del 10 % tiene una o dos palabras, y si hay nodos sin ninguna
+consulta. Los mínimos de coloquial, tipeo y múltiple los cuidas tú.
+
+**Consultas cortas.** Al menos el 10 % del set: temas sueltos de una o dos palabras ("servicios",
+"servicio", "hosting", "precios", "soporte wotel"). Son frecuentes en un chat y tienen puntajes bajos;
+sin ellas, el set no mide si el chat las manda a contacto.
 
 ## Reglas
 

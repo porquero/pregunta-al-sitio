@@ -184,6 +184,32 @@ schema: { tipo: Service, propiedades: [serviceType, offers] }   # opcional: qué
 ---
 ```
 
+### Prioridad por tipo de nodo
+
+Si el sitio tiene nodos de **oferta** (servicios, productos) y de **contenido** (artículos, novedades,
+tutoriales), declara la prioridad en `sitio.yaml > config`:
+
+```yaml
+config:
+  tipos:
+    articulo: { peso: 0.8 }      # el contenido compite con el 80 % de su puntaje
+    novedad: { peso: 0.8 }
+    videotutorial: { peso: 0.8 }
+  opcionesMedia: 2               # opciones en "¿Te refieres a A o B?"
+```
+
+- `peso` (0 a 1,5) multiplica el puntaje del nodo antes de calcular la zona, el margen y el orden. Los
+  tipos no listados valen 1. `evaluar` y `calibrar` usan el mismo cálculo.
+- Entre dos candidatos que difieren en menos del 5 % (`config.empate`), va primero el tipo de mayor peso,
+  en "¿Te refieres a…?" y en los chips de seguimiento.
+- `respaldo: true` (`articulo: { respaldo: true }`) es más estricto: el nodo solo compite si sin él la
+  consulta cae en zona baja (segunda vuelta), y nunca se ofrece junto a una opción de la oferta.
+- Sin `tipos`, el motor se comporta como antes.
+
+Con Playa SPA (91 nodos, 30 de contenido), `peso: 0.8` mejoró todas las métricas de validación, y
+`respaldo` bajó el top-3 de 89 % a 80 % porque las consultas que sí buscaban un artículo pasaban a
+ofrecer servicios. Empieza con `peso`; usa `respaldo` solo para contenido que nunca debe competir.
+
 ### Solo enlaces del sitio
 
 El chat no debe sacar al visitante del sitio. `sitio` en `sitio.yaml` es el dominio principal
@@ -230,14 +256,26 @@ El detalle de cada campo, del diccionario, del ámbito y del set de preguntas es
 | `skill [carpeta]` | copia la guía a `<carpeta>/.claude/skills/pregunta-al-sitio-contenido` |
 | `validar <carpeta>` | revisa los nodos: estructura y reglas de estilo de `sitio.yaml > validar`; sale con 1 si hay errores |
 | `build <carpeta> -o <ruta> [--widget]` | arma `indice.json` con los nodos aprobados e informa los enlaces omitidos; `--widget` copia `pregunta-al-sitio.js` al lado (en el repo lo empaqueta antes; instalado, falla si `dist/` está viejo) |
-| `evaluar <carpeta>` | revisa `preguntas.yaml` y mide el chat; muestra los errores de ajuste y de validación |
-| `calibrar <carpeta> --escribir [--max-falso-rechazo 5%]` | elige parámetros y umbrales del buscador y los guarda en `sitio.yaml`; muestra el compromiso entre falso rechazo y fuga por umbral |
-| `cobertura <carpeta> --fuentes <fuentes>` | lista las fuentes con línea `URL:` sin un nodo cuyo `enlace` sea esa URL; sale con 1 si hay |
+| `evaluar <carpeta>` | revisa `preguntas.yaml` y mide el chat: métricas con intervalo de confianza (Wilson 95 %), por familia (oferta y contenido) si hay `config.tipos`, y errores de ajuste y de validación |
+| `calibrar <carpeta> --escribir [--max-falso-rechazo 5%]` | elige parámetros y umbrales del buscador y los guarda en `sitio.yaml` (conserva `tipos` y `opcionesMedia`); muestra el compromiso entre falso rechazo y fuga por umbral y cuántos títulos y keywords sueltos terminan en contacto |
+| `cobertura <carpeta> --fuentes <fuentes> [--normalizar]` | lista las fuentes con línea `URL:` sin un nodo cuyo `enlace` sea esa URL; sale con 1 si hay. `--normalizar` ignora `.html` e `index.html` |
 
 `build`, `evaluar` y `calibrar` aceptan `--borradores` para incluir los nodos sin aprobar. Objetivos de
 `evaluar`: top-3 ≥ 90 %, precisión en zona alta ≥ 95 %, fuga de conocimiento general ≤ 3 % y falso
 rechazo ≤ 5 %. Las consultas de tipo `seguimiento` no entran en las métricas (el chat responde sin el
 contexto de la conversación); `evaluar` informa su acierto aparte.
+
+`evaluar` y `calibrar` avisan si la validación tiene menos de 100 consultas (con 85, un error mueve el
+top-3 más de un punto) y si el top-3 de ajuste supera al de validación en más de 8 puntos: probable
+sobreajuste del contenido al set. `evaluar` avisa también si menos del 10 % de las consultas tienen una o
+dos palabras ("servicios", "precio hosting").
+
+`calibrar` prueba además dos opciones del motor y deja la que mide mejor:
+
+- `config.normaPorTerminos`: una consulta de una o dos palabras se compara con una escala proporcional a
+  su largo. Sin esto, "servicios" o "hosting" podían ir a contacto aunque el primer candidato fuera el
+  correcto.
+- `config.motor.tfLog: [preguntas]`: un término repetido en muchas preguntas de un nodo suma menos.
 
 **Regla de cobertura: una fuente con `URL:` es un nodo.** Cada archivo de `fuentes/` con una línea
 `URL: https://…` es una página publicada y lleva al menos un nodo con `enlace` igual a esa URL (una ruta
@@ -249,6 +287,26 @@ cobertura:
   excluir: [https://misitio.cl/tours-copia]
 ```
 
+## Buenas prácticas de contenido
+
+Aprendidas al construir un sitio real (91 nodos, 248 consultas):
+
+1. Incluye en el set consultas de una y dos palabras: "servicios", "hosting", "precios".
+2. No copies la `respuesta_corta` en las `preguntas`, ni repitas el nombre del producto en todas:
+   `validar` avisa cuando más del 60 % de las preguntas de un nodo repiten el tema de otro.
+3. Si hay nodos de contenido (artículos, novedades), declara su tipo y su prioridad (`config.tipos`) desde
+   el inicio. Dales pocas keywords, sin sinónimos, y no repitas el vocabulario de los servicios.
+4. Los nombres de producto y los temas propios del sitio ("BPM") van en `ambito.marcas`; si no, "¿qué es
+   X?" se trata como cultura general.
+5. Construye primero con `--borradores` para probar el widget; aprueba y reconstruye sin ellos.
+6. Evita aristas recíprocas y nodos con una sola arista saliente. Al limpiar, conserva la arista del
+   nodo "padre" (resumen → detalle).
+7. Las preguntas "fuera" (precios no publicados, registro de dominios) se resuelven con `ambito.derivar`,
+   no con nodos.
+
+Para convertir un sitio descargado con wget a fuentes, la guía trae
+`guia-contenido/herramientas/convertir.sh`.
+
 ## Motor
 
 Para usar el buscador sin el widget:
@@ -258,11 +316,12 @@ import { crearResolver } from 'pregunta-al-sitio/motor';
 
 const r = crearResolver(await (await fetch('/indice.json')).json());
 r.resolver('¿Tienen hosting?');
-// → { zona: 'alta' | 'media' | 'mixta' | 'baja', nodos, ambito, senales, terminos, derivacion, candidatos }
+// → { zona: 'alta' | 'media' | 'mixta' | 'baja', nodos, ambito, senales, vuelta, terminos, derivacion, candidatos, orden }
 ```
 
 `indice.json` trae `version`, `nombre`, `nodos` (con `respuesta` en HTML, `enlace` y `seguimiento`),
-`diccionario`, `ambito`, `derivacion` y `config`.
+`diccionario`, `ambito`, `derivacion` y `config` (`motor`, `zonas`, `opcionesMedia`, `tipos`, `empate`,
+`normaPorTerminos`). Un `indice.json` anterior sin esas claves funciona igual que antes.
 
 ## Desarrollo
 

@@ -13,12 +13,14 @@ const tituloCorto = (n) => n.titulo.split(',')[0].trim();
  * Chips de seguimiento. Si el nodo declara chips, se usan esos: con destino abren ese nodo y sin destino
  * consultan su texto al motor. Si no declara, se ofrecen los destinos de sus aristas de mayor peso.
  */
-function seguimientoDe(nodo, porId) {
+function seguimientoDe(nodo, porId, tipos) {
+  // Aristas de igual peso: primero el tipo de mayor peso en config.tipos (la oferta antes que el contenido).
+  const prioridad = (id) => Number(tipos?.[porId.get(id)?.tipo]?.peso ?? 1);
   if (nodo.chips.length) {
     return nodo.chips.slice(0, MAX_CHIPS).map((c) => (c.a ? { texto: c.texto, nodo: c.a } : { texto: c.texto, q: c.texto }));
   }
   const salida = [];
-  for (const a of [...nodo.aristas].sort((x, y) => y.peso - x.peso)) {
+  for (const a of [...nodo.aristas].sort((x, y) => y.peso - x.peso || prioridad(y.a) - prioridad(x.a))) {
     const destino = porId.get(a.a);
     if (!destino || destino.id === nodo.id || salida.some((s) => s.nodo === destino.id)) continue;
     salida.push({ texto: tituloCorto(destino), nodo: destino.id });
@@ -82,7 +84,7 @@ export function construirIndice(dir, { borradores = false } = {}) {
     aristas: n.aristas.filter((a) => porId.has(a.a)),
     chips: n.chips.map((c) => (c.a ? { texto: c.texto, a: c.a } : c.texto)),
     enlace: url(n.enlace), // "Ver más": también solo dentro del sitio.
-    seguimiento: seguimientoDe(n, porId),
+    seguimiento: seguimientoDe(n, porId, sitio.config?.tipos),
     respuesta: respuestaHtml(n, sitio, enlaces),
   }));
 

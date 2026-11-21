@@ -29,3 +29,21 @@ test('clasifica cada caso de frontera', (t) => {
   t.diagnostic(Object.entries(porTipo).map(([k, v]) => `${k} ${v.bien}/${v.total}`).join(' · '));
   assert.deepEqual(fallos, []);
 });
+
+test('derivar también calza por términos con el diccionario: "precio sistema" detecta "cuánto cuesta un sistema"', () => {
+  const terminos = crearTerminos({ 'cuanto cuesta': 'precio' });
+  const a = prepararAmbito({ derivar: ['precio sistema', 'empleo'] }, [], terminos);
+  assert.equal(clasificarAmbito('¿Cuánto cuesta un sistema?', a).tipo, 'derivar');
+  assert.equal(clasificarAmbito('precio del sistema', a).tipo, 'derivar');
+  assert.equal(clasificarAmbito('busco empleo', a).tipo, 'derivar');
+  assert.notEqual(clasificarAmbito('¿cuántos empleados tienen?', a).tipo, 'derivar', 'sin derivación de palabras: empleo no es empleados');
+  assert.notEqual(clasificarAmbito('sistema de precios', a).tipo, 'derivar', 'el orden de los términos importa');
+});
+
+test('excluir_si: una palabra de tema ajeno vuelve general la consulta, salvo que nombre una marca', () => {
+  const a = prepararAmbito({ marcas: ['acme'], excluir_si: ['japon', 'clima'] }, [{ keywords: ['hora gratuita'] }], crearTerminos({}));
+  assert.equal(clasificarAmbito('qué hora es en Japón', a).tipo, 'general');
+  assert.equal(clasificarAmbito('clima en la serena', a).tipo, 'general');
+  assert.equal(clasificarAmbito('¿Acme trabaja con clientes en Japón?', a).tipo, 'sitio');
+  assert.equal(clasificarAmbito('hora gratuita', a).tipo, 'sitio');
+});

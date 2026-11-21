@@ -15,6 +15,24 @@ Extraída del chat de Playa SPA. v1 solo español. Licencia MIT.
 Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. Sin remoto todavía
 (se publicará en GitHub; no crear el remoto ni hacer push sin preguntar).
 
+## Último trabajo (2026-11-21)
+
+- Motor: prioridad por tipo y límites vistos en Playa SPA real (91 nodos, 248 consultas; carpeta
+  `playa-chat`, solo leída; las pruebas usaron una copia). Sin commit.
+  - `config.tipos` `{ tipo: { peso, respaldo } }`: peso multiplica el puntaje antes de zona, margen y orden;
+    `respaldo` = segunda vuelta. `config.empate` (5 %) desempata por prioridad en opciones y chips.
+  - `normaPorTerminos` (consultas de 1 o 2 palabras) y `motor.tfLog: [preguntas]` (saturación); `calibrar`
+    prueba ambas y escribe `normaPorTerminos`. Sin estas claves el motor es el de antes (índice viejo de
+    Playa: mismas métricas).
+  - Ámbito: `derivar` también por términos con diccionario; nuevo `excluir_si`. `validar`: `config.tipos`,
+    repetición de un tema ajeno en > 60 % de las preguntas, `genericas` con variante del diccionario.
+  - `evaluar`: Wilson 95 %, avisos (validación < 100, sobreajuste > 8 puntos, < 10 % consultas cortas),
+    métricas por familia y segunda vuelta. `calibrar`: comprobación sintética. `cobertura --normalizar`.
+    Plantilla `guia-contenido/herramientas/convertir.sh` (URL sin `.html`). Guía y README con 7 lecciones.
+  - Playa (validación, copia con `tipos` peso 0,8 + `que hora es` en genericas + recalibrado): top-3
+    89,2 → 90,5 %, prec. alta 87,7 → 91,8 %, en alta 58,2 → 62,2 %, falso rechazo 5,5 → 4,1 %, fuga
+    7,7 → 0 %. Aceptación 9/9. `respaldo` medido: top-3 79,7 %, no recomendado como mecanismo principal.
+
 ## Último trabajo (2026-11-19)
 
 - UX tras pruebas con usuarios (commit `b2b3180`):
@@ -104,6 +122,7 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 | 4+ | Enlaces entre nodos: `nodo:`, autoenlace, `validar` de ids rotos, clic en el widget | ✅ Tests + navegador · `975eb88` |
 | 4+ | Solo enlaces del sitio principal (`sitio` en `sitio.yaml`) | ✅ Tests + navegador · commit siguiente al `975eb88` |
 | 4+ | Hallazgos del sitio de turismo (11 puntos: widget al día, tarjetas, dominio, chips, cobertura, calibrar, erratas…) | ✅ `63abacd` |
+| 4+ | Prioridad por tipo de nodo, consultas cortas, saturación, ámbito, intervalos de confianza | ✅ Tests + métricas Playa + navegador · ⏳ commit |
 | 5 | Sitio de ejemplo, documentación, empaquetado y publicación | ⏳ |
 | 6 | (Opcional) Playa migra a la librería | ⏳ |
 

@@ -8,7 +8,7 @@ import { parse } from 'yaml';
 import { iniciarSitio, instalarSkill } from '../../cli/iniciar.mjs';
 import { validarSitio } from '../../cli/validar.mjs';
 import { construirIndice } from '../../cli/build.mjs';
-import { revisarPreguntas } from '../../cli/evaluacion/preguntas.mjs';
+import { revisarPreguntas, palabrasDe } from '../../cli/evaluacion/preguntas.mjs';
 import { cargarIndice, cargarPreguntas } from '../../cli/evaluacion/datos.mjs';
 import { crearResolver } from '../../src/motor/resolver.js';
 
@@ -63,11 +63,23 @@ test('los enlaces de la guía apuntan a archivos que existen', () => {
   for (const e of enlaces) assert.ok(existsSync(new URL(e, guia)), e);
 });
 
-test('el set de Playa no tiene errores; le falta cubrir un nodo', () => {
+test('el set de Playa no tiene errores; le faltan consultas cortas y cubrir un nodo', () => {
   assert.deepEqual(revisarPreguntas(cargarPreguntas(), cargarIndice()), {
     errores: [],
-    avisos: ["set: ninguna consulta espera el nodo 'por-que-playa'"],
+    avisos: [
+      'set: 9 consultas de una o dos palabras (5 %; mínimo 10 %: "servicios", "hosting", "precios")',
+      "set: ninguna consulta espera el nodo 'por-que-playa'",
+    ],
   });
+});
+
+test('consultas cortas: se cuentan por palabras escritas y sin las generales', () => {
+  const indice = { nodos: [{ id: 'a' }] };
+  const set = (textos) => textos.map((consulta, n) => ({ consulta, n, tipo: 'anexo', esperado: ['a'] }));
+  const aviso = (textos) => revisarPreguntas(set(textos), indice, { total: 0, general: 0, frontera: 0, necesidad: 0, ajena: 0 }).avisos.some((x) => x.includes('una o dos palabras'));
+  assert.equal(palabrasDe('¿Qué servicios?'), 2);
+  assert.equal(aviso(['hosting', ...Array.from({ length: 9 }, (_, i) => `consulta larga numero ${i}`)]), false, '10 % basta');
+  assert.equal(aviso(Array.from({ length: 10 }, (_, i) => `consulta larga numero ${i}`)), true);
 });
 
 test('la revisión del set encuentra ids, tipos y repetidas', () => {

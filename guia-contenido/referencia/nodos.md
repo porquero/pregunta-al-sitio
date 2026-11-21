@@ -44,7 +44,7 @@ estado: borrador
 | Campo | Obligatorio | Uso |
 |---|---|---|
 | `id` | sí | minúsculas, números y guiones; igual al nombre del archivo |
-| `tipo` | sí | categoría libre (`servicio`, `producto`, `faq`, `proceso`…). Dos tienen efecto: `saludo` es la bienvenida del chat y no se ofrece en "¿Te refieres a A o B?"; el nodo con id `contacto` recibe las consultas sin respuesta |
+| `tipo` | sí | categoría libre (`servicio`, `producto`, `articulo`, `faq`…). `saludo` es la bienvenida del chat y no se ofrece en "¿Te refieres a A o B?"; el nodo con id `contacto` recibe las consultas sin respuesta. `sitio.yaml > config.tipos` da prioridad por tipo (ver [Prioridad por tipo](#prioridad-por-tipo)) |
 | `titulo` | sí | nombre del tema. Lo antes de la primera coma se usa en chips y en "¿Te refieres a…?", así que empieza por el nombre corto |
 | `respuesta_corta` | sí | lo que el chat muestra. 40 a 60 palabras |
 | `enlace` | no | destino de "Ver más": ruta del sitio (`/hosting`, `/servicios#hosting`) o URL `https://` del dominio de `sitio`. Otro dominio se omite |
@@ -158,6 +158,25 @@ reconoce como "Seguridad" y enlazaría cualquier mención de seguridad. Reescrib
 coma (`Seguridad del hosting, respaldo y soporte`) o deja el autoenlace apagado y usa enlaces a mano.
 Después de `build`, revisa qué se enlazó. El autoenlace no cambia la búsqueda: `evaluar` da las mismas métricas.
 
+## Prioridad por tipo
+
+Cuando el sitio mezcla oferta (servicios, productos) y contenido (artículos, novedades, tutoriales), el
+contenido no debe ganarle a un servicio en una consulta de oferta. Declara la prioridad en `sitio.yaml`
+en vez de quitar palabras a cada artículo:
+
+```yaml
+config:
+  tipos:
+    articulo: { peso: 0.8 }
+    novedad: { peso: 0.8 }
+    videotutorial: { peso: 0.8 }
+```
+
+`peso` (0 a 1,5) multiplica el puntaje; los tipos no listados valen 1. `respaldo: true` hace que el tipo
+solo compita cuando sin él la consulta iría a contacto. Es más estricto y suele bajar el top-3: úsalo
+solo para contenido que nunca debe aparecer junto a la oferta. `validar` revisa el mapa (peso fuera de
+rango, tipo sin nodos, todos los nodos de respaldo).
+
 ## Preguntas, keywords y sinónimos
 
 Son lo que el buscador compara con la consulta. Pesan más `keywords`, luego `titulo` y `sinonimos`, y
@@ -165,9 +184,13 @@ luego `preguntas`.
 
 - **preguntas**: como las escribe alguien que no conoce el sitio. Mezcla formales y coloquiales,
   cortas y largas, con la jerga del país (`¿cuánto sale?`, `¿me pueden ayudar con…?`). Cubre las
-  distintas intenciones del tema: qué es, si lo tienen, cómo funciona, plazos, requisitos.
+  distintas intenciones del tema: qué es, si lo tienen, cómo funciona, plazos, requisitos. No copies la
+  `respuesta_corta` ni repitas el nombre del producto en todas: `validar` avisa si más del 60 % de las
+  preguntas repiten el tema principal de otro nodo.
 - **keywords**: 5 a 10 términos del tema, incluidas siglas y nombres de producto. Evita palabras que
   aparecen en todos los nodos (`empresa`, `servicio`).
+- En artículos y novedades genéricos: 2 o 3 keywords, sin sinónimos, y sin el vocabulario de los
+  servicios.
 - **sinonimos** del nodo: cómo nombraría el tema alguien de afuera. Si un sinónimo vale para todo el
   sitio (`wsp` → `whatsapp`), va al `diccionario` de `sitio.yaml`.
 
@@ -180,5 +203,7 @@ luego `preguntas`.
 | `proceso` | servicio → forma de trabajo | 0,5 a 0,7 |
 | `cta` | → contacto | 0,5 a 0,7 |
 
-El peso va de 0,3 a 1,0 y ordena los chips de seguimiento. Cada nodo debería tener al menos una arista
-para que la conversación pueda seguir.
+El peso va de 0,3 a 1,0 y ordena los chips de seguimiento; entre aristas de igual peso va primero el
+tipo de mayor prioridad en `config.tipos`. Cada nodo debería tener dos aristas salientes o más, para que
+los chips varíen. Evita las recíprocas (A → B y B → A): los chips rebotan entre los dos. Al limpiarlas,
+conserva la del nodo "padre" (resumen → detalle) y quita la otra.

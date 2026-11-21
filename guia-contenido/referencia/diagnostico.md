@@ -36,6 +36,10 @@ local al más general.
 | tema que se deriva respondido con un nodo | falta en `ambito.derivar` | agregarlo (y a `derivar_salvo` lo que no debe derivarse) |
 | tipeo que no encuentra el nodo | palabra de menos de 5 letras, más de una errata en 5 a 8 letras o más de dos desde 9 | agregar la variante al `diccionario` |
 | zona alta incorrecta | dos nodos muy parecidos y uno gana por poco | diferenciar los nodos; después `calibrar` |
+| un artículo o novedad gana a un servicio, o compite en "¿Te refieres a…?" | el contenido comparte vocabulario con la oferta | `config.tipos` con `peso: 0.8` para el contenido; no quitar palabras nodo por nodo |
+| un nodo secundario gana al principal de su tema | sus preguntas repiten el nombre del tema | variar las preguntas (`validar` lo avisa) |
+| una o dos palabras ("servicios") van a contacto con el esperado primero | puntaje normalizado bajo por la brevedad | `calibrar --escribir` (prueba `normaPorTerminos`); agregar consultas cortas al set |
+| "¿qué es X?" va a contacto siendo X un tema del sitio | X no está en `ambito.marcas` | agregarlo a `marcas` |
 
 Después de cada ronda de cambios: `validar`, `evaluar`. Cuando no queden correcciones de contenido
 evidentes, `calibrar --escribir` y `evaluar` de nuevo.
@@ -47,6 +51,19 @@ fuga del mejor candidato en ajuste y en validación, y marca el elegido. Subir `
 contacto: baja la fuga y sube el falso rechazo. `calibrar` descarta primero los umbrales que dejan el
 falso rechazo de **validación** sobre el máximo (5 % por defecto; `--max-falso-rechazo 3%` lo cambia).
 Si ninguno lo cumple, lo dice: el problema es de contenido, no de umbrales.
+
+## Confianza de la validación
+
+`evaluar` y `calibrar` muestran el intervalo de Wilson al 95 % de cada métrica de validación. Con 74
+consultas que esperan nodo, un top-3 de 90,5 % va de 81,7 % a 95,3 %: dos contenidos cuyos intervalos se
+cruzan no son distinguibles. Avisan además:
+
+- **Validación con menos de 100 consultas**: agrega consultas antes de seguir ajustando.
+- **Ajuste más de 8 puntos sobre validación en top-3**: probable sobreajuste. El contenido se adaptó a las
+  consultas de ajuste; corregir más contra ellas no generaliza.
+
+`calibrar` hace también una comprobación sintética: usa el título corto y la primera keyword de cada
+nodo como consulta e informa cuáles terminan en contacto con los umbrales elegidos.
 
 ## Cuándo parar
 

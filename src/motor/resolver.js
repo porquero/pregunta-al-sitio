@@ -10,7 +10,13 @@
 //   diccionario  sinónimos del sitio, que se suman al diccionario base de normalizar.js
 //   ambito       reglas del detector de ámbito (ambito.js)
 //   derivacion   texto para la zona baja
-//   config       { motor, zonas, opcionesMedia } que reemplazan los valores de config.js
+//   config       { motor, zonas, opcionesMedia, tipos, empate, normaPorTerminos } que reemplazan los
+//                valores de config.js. Sin tipos ni normaPorTerminos el motor se comporta como antes.
+//
+// Prioridad por tipo (config.tipos): el puntaje de cada nodo se multiplica por el peso de su tipo antes
+// de calcular zona, margen y orden; ante un empate cercano (config.empate) va primero el tipo de mayor
+// peso. Los tipos con respaldo: true solo compiten en una segunda vuelta, si la primera (sin ellos) cae
+// en zona baja.
 //
 // Zonas:
 //   alta   responde con nodos[0].
@@ -20,7 +26,7 @@
 //   baja   fuera de ámbito, tema derivado o puntaje insuficiente: nodo contacto con el texto `derivacion`.
 import { crearTerminos, terminos as terminosBase, trigramas } from './normalizar.js';
 import { prepararAmbito, clasificarAmbito } from './ambito.js';
-import { MOTOR, ZONAS, OPCIONES_MEDIA } from './config.js';
+import { MOTOR, ZONAS, OPCIONES_MEDIA, EMPATE } from './config.js';
 
 export const CAMPOS = ['titulo', 'preguntas', 'keywords', 'sinonimos'];
 
@@ -149,12 +155,17 @@ export function crearBM25F(nodos, opciones = {}, terminos = terminosBase) {
     return mejor && sim >= o.similitudMin ? [[mejor, sim]] : [];
   }
 
+  // Saturación de la frecuencia por campo: en los campos de tfLog, f pasa a 1 + ln(f). Un término repetido
+  // en casi todas las preguntas de un nodo ya no suma como si fueran frases distintas.
+  const saturados = new Set(o.tfLog ?? []);
+
   function tfPonderado(doc, t) {
     let suma = 0;
     for (const c of CAMPOS) {
       const campo = doc.campos[c];
-      const f = campo.tf.get(t);
+      let f = campo.tf.get(t);
       if (!f) continue;
+      if (saturados.has(c)) f = 1 + Math.log(f);
       suma += (o.pesos[c] * f) / (1 - o.b[c] + (o.b[c] * campo.largo) / promedio[c]);
     }
     return suma;
@@ -220,15 +231,62 @@ export function escalaDe(motor, nodos) {
   return tops[Math.floor(tops.length / 2)] || 1;
 }
 
-/** Señales de confianza del primer resultado. */
-export function senales(resultados, escala) {
+/** Mediana de términos de las preguntas de ejemplo: referencia para normalizar por largo de consulta. */
+export function terminosReferencia(nodos, terminos = terminosBase) {
+  const largos = [];
+  for (const n of nodos) for (const p of n.preguntas ?? []) largos.push(new Set(terminos(p)).size);
+  largos.sort((a, b) => a - b);
+  return largos[Math.floor(largos.length / 2)] || 1;
+}
+
+/**
+ * Señales de confianza del primer resultado. Los resultados vienen ordenados por puntaje.
+ * opciones.terminos y opciones.referencia: con normalización por largo, una consulta de menos términos
+ * que la referencia se compara con una escala proporcional (una palabra no puede sumar como cuatro).
+ */
+export function senales(resultados, escala, { terminos = 0, referencia = 0 } = {}) {
   const [r1, r2] = resultados;
   if (!r1) return { norm: 0, cobertura: 0, margen: 0 };
+  const factor = referencia > 0 && terminos > 0 && terminos < referencia ? terminos / referencia : 1;
   return {
-    norm: r1.puntaje / escala,
+    norm: r1.puntaje / (escala * factor),
     cobertura: r1.cobertura,
     margen: r2 ? (r1.puntaje - r2.puntaje) / r1.puntaje : 1,
   };
+}
+
+/** Peso de un tipo según config.tipos (1 si no está). */
+export const pesoTipo = (tipos, tipo) => Number(tipos?.[tipo]?.peso ?? 1);
+
+/**
+ * Puntajes ajustados por tipo: multiplica cada puntaje por el peso de su tipo y reordena. Conserva el
+ * puntaje del motor en `base`. Sin tipos devuelve la misma lista.
+ */
+export function ajustarPorTipo(resultados, tipoDe, tipos) {
+  if (!tipos || !Object.keys(tipos).length) return resultados;
+  return resultados
+    .map((r) => ({ ...r, base: r.puntaje, puntaje: r.puntaje * pesoTipo(tipos, tipoDe(r.id)) }))
+    .sort((x, y) => y.puntaje - x.puntaje);
+}
+
+/**
+ * Empate cercano: entre candidatos consecutivos que difieren en menos de `empate` (fracción del mayor),
+ * va primero el de mayor prioridad. Inserción estable: con prioridades iguales el orden no cambia.
+ */
+export function desempatar(resultados, prioridad, empate) {
+  if (!(empate > 0)) return resultados;
+  const salida = [...resultados];
+  for (let i = 1; i < salida.length; i++) {
+    let j = i;
+    while (j > 0) {
+      const [a, b] = [salida[j - 1], salida[j]];
+      const cerca = a.puntaje > 0 && (a.puntaje - b.puntaje) / a.puntaje < empate;
+      if (!cerca || prioridad(b.id) <= prioridad(a.id)) break;
+      [salida[j - 1], salida[j]] = [b, a];
+      j -= 1;
+    }
+  }
+  return salida;
 }
 
 /** Zona según el ámbito y las señales. Es la misma regla que usa la calibración. */
@@ -240,6 +298,29 @@ export function zonaDe(tipoAmbito, s, u) {
   return 'baja';
 }
 
+/**
+ * Zona con segunda vuelta. senalesPorVuelta[0] es la primera vuelta (sin nodos de respaldo) y, si hay,
+ * [1] la segunda (todos los nodos). La segunda solo se usa si la primera cae en zona baja por puntaje.
+ * Devuelve { zona, vuelta }. Es la misma regla que usa la calibración.
+ */
+export function zonaVueltas(tipoAmbito, senalesPorVuelta, u) {
+  const zona = zonaDe(tipoAmbito, senalesPorVuelta[0], u);
+  if (zona !== 'baja' || senalesPorVuelta.length < 2 || tipoAmbito === 'general' || tipoAmbito === 'derivar') {
+    return { zona, vuelta: 0 };
+  }
+  const segunda = zonaDe(tipoAmbito, senalesPorVuelta[1], u);
+  return segunda === 'baja' ? { zona, vuelta: 0 } : { zona: segunda, vuelta: 1 };
+}
+
+/** config.tipos normalizado: { tipo: { peso, respaldo } }. */
+function tiposDe(tipos = {}) {
+  const salida = {};
+  for (const [tipo, v] of Object.entries(tipos ?? {})) {
+    salida[tipo] = { peso: Number(v?.peso ?? 1), respaldo: v?.respaldo === true };
+  }
+  return salida;
+}
+
 /** Configuración efectiva: valores de config.js reemplazados por los del índice. */
 export function configDe(datos = {}) {
   const c = datos.config ?? {};
@@ -247,6 +328,9 @@ export function configDe(datos = {}) {
     motor: { ...MOTOR, ...c.motor, pesos: { ...MOTOR.pesos, ...c.motor?.pesos } },
     zonas: { ...ZONAS, ...c.zonas },
     opcionesMedia: Number(c.opcionesMedia ?? OPCIONES_MEDIA),
+    tipos: tiposDe(c.tipos),
+    empate: Number(c.empate ?? EMPATE),
+    normaPorTerminos: c.normaPorTerminos === true,
   };
 }
 
@@ -264,6 +348,11 @@ export function crearResolver(datos, opciones = {}) {
   const escala = escalaDe(motor, nodos);
   const derivacion = datos.derivacion ?? '';
   const saludos = new Set(nodos.filter((n) => n.tipo === 'saludo').map((n) => n.id));
+  const tipoDe = new Map(nodos.map((n) => [n.id, n.tipo]));
+  const tipos = opciones.tipos ?? config.tipos;
+  const respaldo = new Set(nodos.filter((n) => tipos[n.tipo]?.respaldo).map((n) => n.id));
+  const prioridad = (id) => pesoTipo(tipos, tipoDe.get(id));
+  const referencia = config.normaPorTerminos ? terminosReferencia(nodos, terminos) : 0;
 
   // El saludo no es una opción útil en "¿Te refieres a A o B?": solo queda si no hay otra.
   function opcionesMedia(ids) {
@@ -271,12 +360,37 @@ export function crearResolver(datos, opciones = {}) {
     return (utiles.length ? utiles : ids).slice(0, config.opcionesMedia);
   }
 
+  /** Resultados del motor ajustados por tipo y desempatados por prioridad. */
+  function buscar(consulta) {
+    return desempatar(ajustarPorTipo(motor.buscar(consulta), (id) => tipoDe.get(id), tipos), prioridad, config.empate);
+  }
+
+  /**
+   * Vueltas de búsqueda: sin nodos de respaldo, una sola. Con ellos, la primera excluye el respaldo y la
+   * segunda los incluye a todos. Cada vuelta: { resultados, senales }.
+   */
+  function vueltasDe(consulta, tipoAmbito) {
+    if (tipoAmbito === 'general' || tipoAmbito === 'derivar') return [{ resultados: [], senales: senales([], escala) }];
+    const todos = buscar(consulta);
+    const largo = { terminos: new Set(terminos(consulta)).size, referencia };
+    const todas = { resultados: todos, senales: senales(todos, escala, largo) };
+    if (!respaldo.size) return [todas];
+    const primeros = todos.filter((r) => !respaldo.has(r.id));
+    return [{ resultados: primeros, senales: senales(primeros, escala, largo) }, todas];
+  }
+
+  /** Orden completo mostrado: en la primera vuelta, el respaldo va al final. */
+  function ordenDe(vueltas, vuelta) {
+    if (vuelta === 1 || vueltas.length === 1) return vueltas[vuelta].resultados;
+    return [...vueltas[0].resultados, ...vueltas[1].resultados.filter((r) => respaldo.has(r.id))];
+  }
+
   function resolver(consulta) {
     const { tipo } = clasificarAmbito(consulta, ambito);
-    const resultados = tipo === 'general' || tipo === 'derivar' ? [] : motor.buscar(consulta);
-    const s = senales(resultados, escala);
-    const zona = zonaDe(tipo, s, zonas);
-    const ids = resultados.map((r) => r.id);
+    const vueltas = vueltasDe(consulta, tipo);
+    const { zona, vuelta } = zonaVueltas(tipo, vueltas.map((v) => v.senales), zonas);
+    const orden = ordenDe(vueltas, vuelta);
+    const ids = vueltas[vuelta].resultados.map((r) => r.id);
     let nodosRespuesta;
     if (zona === 'alta' || zona === 'mixta') nodosRespuesta = ids.slice(0, 1);
     else if (zona === 'media') nodosRespuesta = opcionesMedia(ids);
@@ -285,13 +399,26 @@ export function crearResolver(datos, opciones = {}) {
       zona,
       nodos: nodosRespuesta,
       ambito: tipo,
-      senales: s,
+      senales: vueltas[vuelta].senales,
+      vuelta,
+      // Para calibrar: señales de cada vuelta y el orden de cada desenlace.
+      vueltas: vueltas.map((v) => v.senales),
+      ordenes: vueltas.map((_, i) => ordenDe(vueltas, i).map((r) => r.id)),
       // Solo tokens normalizados: es lo único que puede registrarse sin exponer el texto del visitante.
       terminos: terminos(consulta),
       derivacion: zona === 'baja' ? derivacion : null,
-      candidatos: resultados.slice(0, 3),
+      candidatos: orden.slice(0, 3),
+      orden: orden.map((r) => r.id),
     };
   }
 
-  return { resolver, buscar: motor.buscar, terminos, escala, config: { ...config, motor: motor.opciones, zonas }, version: datos.version };
+  return {
+    resolver,
+    buscar,
+    terminos,
+    escala,
+    respaldo,
+    config: { ...config, tipos, motor: motor.opciones, zonas },
+    version: datos.version,
+  };
 }

@@ -36,12 +36,13 @@ necesidad del visitante ("tengo mis pedidos en Excel") se trate como consulta so
 
 | Clave | Contenido | Efecto |
 |---|---|---|
-| `marcas` | nombre del sitio, marcas, productos, "este chat" | con una marca, siempre es sobre el sitio |
+| `marcas` | nombre del sitio, marcas, productos, temas propios ("BPM"), "este chat" | con una marca, siempre es sobre el sitio |
 | `oferta` | segunda persona y verbos de oferta (`ustedes`, `ofrecen`, `tienen`) | igual que una marca |
 | `necesidad` | necesidad del visitante (`mi empresa`, `necesito`, `precio`) | con una fórmula general, la consulta es mixta: el chat ofrece ver el nodo o escribir al equipo |
 | `genericas` | fórmulas de conocimiento general (`que es`, `como funciona`, `diferencia entre`) | sin ninguna de las anteriores, va a contacto |
-| `derivar` | temas que el chat no responde (empleo, prácticas) | va a contacto con el texto de derivación y no se registra como "sin respuesta" |
+| `derivar` | temas que el chat no responde (empleo, precios no publicados, dominios) | va a contacto con el texto de derivación y no se registra como "sin respuesta" |
 | `derivar_salvo` | palabras que anulan `derivar` | "se cayó mi sitio web" no se deriva si `sitio web` está en `derivar` y `cayo` en `derivar_salvo` |
+| `excluir_si` | palabras de temas ajenos al sitio (`clima`, `horoscopo`, `futbol`) | sin una marca, la consulta es general aunque comparta otra palabra con un nodo |
 | `palabras_clave_max` | número (3) | una consulta corta con una keyword del catálogo ("hosting") es sobre el sitio |
 
 Ajustes habituales:
@@ -54,3 +55,12 @@ Ajustes habituales:
   general`): falta la marca o el verbo en `marcas`/`oferta`, o la fórmula general es demasiado amplia.
 - Cada frase se busca como palabras completas sobre el texto normalizado: `que es` no coincide con
   `queso`.
+- `marcas`, `oferta`, `necesidad` y `genericas` se comparan **sin** aplicar el diccionario: escribe las
+  variantes que use el visitante. `validar` avisa si una fórmula de `genericas` contiene una variante
+  del diccionario y falta la forma canónica.
+- `derivar` y `excluir_si` además se comparan por términos, con el diccionario aplicado y sin palabras
+  vacías: `precio sistema` en `derivar` también detecta "¿cuánto cuesta un sistema?" si el diccionario
+  tiene `cuanto cuesta: precio`. Las palabras se comparan enteras: `empleo` no detecta "empleados".
+- Una pregunta general que comparte una palabra con un nodo ("¿qué hora es en Japón?" frente a "hora
+  gratuita de consultoría") se corrige con la fórmula en `genericas` (`que hora es`) o, si el tema ajeno
+  se repite, con sus palabras en `excluir_si`.

@@ -4,6 +4,7 @@
 import { formatear, preguntaOpciones } from './opciones.js';
 import { enlaceContacto, cuerpoContacto, erroresContacto, enviarContacto } from './contacto.js';
 import { chipsSeguimiento, sugerenciasSinRespuesta } from '../motor/dialogo.js';
+import { pesoTipo } from '../motor/resolver.js';
 
 const datosChip = (s) => ({ texto: s.texto, datos: s.nodo ? { nodo: s.nodo } : { q: s.q } });
 
@@ -55,6 +56,12 @@ export function crearRender({ log, datos, opciones, ruta = () => [] }) {
   const nodoDe = async (id) => (await datos()).nodos.find((n) => n.id === id) ?? null;
   let mapa = null;
   const porId = async () => (mapa ??= new Map((await datos()).nodos.map((n) => [n.id, n])));
+  // Peso del tipo de cada nodo (config.tipos): desempata los chips, la oferta antes que el contenido.
+  const prioridadDe = async () => {
+    const indice = await datos();
+    const m = await porId();
+    return (id) => pesoTipo(indice.config?.tipos, m.get(id)?.tipo);
+  };
   const titulo = async (id) => {
     const n = await nodoDe(id);
     return n ? n.titulo.split(',')[0].trim() : id;
@@ -118,7 +125,7 @@ export function crearRender({ log, datos, opciones, ruta = () => [] }) {
       p.append(a);
       bloque.append(p);
     }
-    const seguimiento = conSeguimiento ? chipsSeguimiento(n, { vistos, porId: await porId() }) : [];
+    const seguimiento = conSeguimiento ? chipsSeguimiento(n, { vistos, porId: await porId(), prioridad: await prioridadDe() }) : [];
     if (seguimiento.length) {
       bloque.append(chips(textos.sigue, seguimiento.map(datosChip), { titulo: Boolean(n.enlace) }));
     }
@@ -331,7 +338,7 @@ export function crearRender({ log, datos, opciones, ruta = () => [] }) {
         // Sin respuesta: el formulario queda plegado y se invita a seguir con otros temas.
         if (crear) bloque.append(plegado(textos.escribirEquipo, crear));
         bloque.append(el('p', 'seguir', textos.seguirPreguntando));
-        const temas = sugerenciasSinRespuesta(indice.nodos, { vistos: op?.vistos ?? [] });
+        const temas = sugerenciasSinRespuesta(indice.nodos, { vistos: op?.vistos ?? [], prioridad: await prioridadDe() });
         if (temas.length) bloque.append(chips(textos.sigue, temas.map(datosChip)));
         return bloque;
       }, op);

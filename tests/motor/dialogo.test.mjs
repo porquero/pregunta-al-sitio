@@ -149,3 +149,12 @@ test('el contacto recibe los nodos mostrados antes, para no repetirlos en las su
   await dialogo.preguntar('¿Qué es la Ley 21.719?');
   assert.deepEqual(dibujado.find((d) => d.tipo === 'contacto').vistos, ['metodologia']);
 });
+
+test('chips: entre aristas de igual peso va primero el tipo de mayor prioridad', () => {
+  const n = (id, tipo) => ({ id, tipo, titulo: id.toUpperCase(), chips: [], aristas: [], seguimiento: [] });
+  const porId = new Map([n('art', 'articulo'), n('srv', 'servicio'), n('otro', 'servicio')].map((x) => [x.id, x]));
+  const origen = { ...n('o', 'servicio'), seguimiento: [{ texto: 'X', nodo: 'otro' }, { texto: 'Y', nodo: 'otro' }], aristas: [{ a: 'art', peso: 0.5 }, { a: 'srv', peso: 0.5 }, { a: 'otro', peso: 0.9 }] };
+  const prioridad = (id) => (porId.get(id)?.tipo === 'articulo' ? 0.6 : 1);
+  assert.deepEqual(chipsSeguimiento(origen, { vistos: ['otro'], porId, prioridad }).map((s) => s.nodo), ['srv', 'art']);
+  assert.deepEqual(chipsSeguimiento(origen, { vistos: ['otro'], porId }).map((s) => s.nodo), ['art', 'srv'], 'sin prioridad manda el orden de las aristas');
+});

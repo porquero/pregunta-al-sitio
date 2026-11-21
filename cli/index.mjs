@@ -13,7 +13,7 @@ import { validarSitio } from './validar.mjs';
 import { evaluar, FACTOR_MOVIL } from './evaluacion/evaluar.mjs';
 import { calibrar } from './evaluacion/calibrar.mjs';
 import { cargarIndice, cargarPreguntas } from './evaluacion/datos.mjs';
-import { cumple, resumen } from './evaluacion/metricas.mjs';
+import { cumple, resumen, intervalos } from './evaluacion/metricas.mjs';
 import { revisarPreguntas } from './evaluacion/preguntas.mjs';
 import { iniciarSitio, instalarSkill } from './iniciar.mjs';
 import { widgetAlDia } from './empaquetar.mjs';
@@ -45,6 +45,7 @@ Comandos:
               --borradores
   cobertura lista las fuentes con línea URL: sin un nodo cuyo enlace sea esa URL
               --fuentes <carpeta>   carpeta de fuentes (por defecto fuentes/ junto a la carpeta)
+              --normalizar          ignora ".html", "index.html" y la barra final al comparar
               Sale con código 1 si alguna fuente no tiene nodo.
 
 La carpeta por defecto es la actual.`;
@@ -61,6 +62,7 @@ const OPCIONES = {
   sitio: { type: 'string' },
   widget: { type: 'boolean', default: false },
   fuentes: { type: 'string' },
+  normalizar: { type: 'boolean', default: false },
   'max-falso-rechazo': { type: 'string' },
   ayuda: { type: 'boolean', short: 'h', default: false },
 };
@@ -84,10 +86,15 @@ function indiceDe(dir, valores) {
 const comandos = {
   cobertura(dir, v) {
     const carpeta = v.fuentes ?? join(dir, '..', 'fuentes');
-    const { fuentes, sinNodo } = cobertura(dir, carpeta);
+    const { fuentes, sinNodo } = cobertura(dir, carpeta, { normalizar: v.normalizar });
     for (const s of sinNodo) console.log(`sin nodo  ${s.url}  (${s.archivo})`);
     const excluidas = fuentes.filter((x) => x.excluida).length;
     console.log(`\n${fuentes.length} fuentes con URL · ${fuentes.length - sinNodo.length - excluidas} con nodo · ${excluidas} excluidas · ${sinNodo.length} sin nodo`);
+    console.log(
+      v.normalizar
+        ? 'URL normalizadas: sin ".html", "index.html" ni barra final.'
+        : 'URL comparadas tal cual, sin barra final. Si las fuentes traen ".html" y el sitio no, usa --normalizar.',
+    );
     if (sinNodo.length) {
       console.log('Regla: una fuente con URL: es un nodo con enlace igual a esa URL (excepciones en sitio.yaml > cobertura.excluir).');
     }
@@ -151,6 +158,15 @@ const comandos = {
     console.log(`Índice ${s.version} · ${datos.nodos.length} nodos · ajuste ${s.tamanos.ajuste} · validación ${s.tamanos.validacion}\n`);
     console.log(`Validación: ${resumen(s.validacion)}`, cumple(s.validacion) ? '· cumple' : '· NO cumple');
     console.log(`Ajuste:     ${resumen(s.ajuste)}`);
+    console.log(`Intervalos de validación (Wilson 95 %): ${intervalos(s.validacion)}`);
+    for (const a of s.avisos) console.log(`aviso  ${a}`);
+    if (s.porFamilia) {
+      console.log('\nValidación por familia de nodo (config.tipos):');
+      for (const [fam, m] of Object.entries(s.porFamilia)) console.log(`  ${fam.padEnd(9)} n ${String(m.n).padStart(3)} · ${resumen(m)}`);
+    }
+    if (s.segundaVuelta) {
+      console.log(`Resueltas en la segunda vuelta (nodos de respaldo): validación ${s.segundaVuelta.validacion} · ajuste ${s.segundaVuelta.ajuste}`);
+    }
     console.log('\nValidación por tipo:');
     for (const [t, m] of Object.entries(s.validacionPorTipo)) {
       console.log(`  ${t.padEnd(12)} n ${String(m.n).padStart(3)} · acierto ${p(m.aciertoTotal)} · top-3 ${p(m.top3)}`);
@@ -189,6 +205,14 @@ const comandos = {
       const col = (x) => p(x).padStart(6);
       console.log(`  ${c.Cm.toFixed(2)}          ${col(c.ajuste.falsoRechazo)} ${col(c.ajuste.fuga)}   ·             ${col(c.validacion.falsoRechazo)} ${col(c.validacion.fuga)}${c.elegido ? '  ← elegido' : ''}`);
     }
+    console.log(`
+Intervalos de validación (Wilson 95 %): ${intervalos(r.validacion.metricas)}`);
+    for (const a of r.avisos) console.log(`aviso  ${a}`);
+    console.log(`Normalización por largo de consulta: ${r.config.normaPorTerminos ? 'sí' : 'no'} · saturación en preguntas: ${r.config.motor.tfLog?.length ? 'sí' : 'no'}`);
+    const s = r.sintetica;
+    console.log(`
+Comprobación sintética (título corto y primera keyword de cada nodo): ${s.aContacto.length} de ${s.total} terminan en contacto`);
+    for (const x of s.aContacto) console.log(`  "${x.consulta}" (${x.nodo})`);
     if (r.validacion.metricas.falsoRechazo > r.objetivo.falsoRechazo) {
       console.log(`Ningún umbral deja el falso rechazo de validación bajo ${p(r.objetivo.falsoRechazo)}: revisa los errores con evaluar.`);
     }
@@ -198,6 +222,7 @@ const comandos = {
       const doc = parseDocument(existsSync(ruta) ? readFileSync(ruta, 'utf8') : '{}');
       doc.setIn(['config', 'motor'], doc.createNode(r.config.motor));
       doc.setIn(['config', 'zonas'], doc.createNode(r.config.zonas));
+      doc.setIn(['config', 'normaPorTerminos'], r.config.normaPorTerminos);
       writeFileSync(ruta, doc.toString({ lineWidth: 0 }));
       console.log(`config escrita en ${ruta}; vuelve a correr build`);
     }

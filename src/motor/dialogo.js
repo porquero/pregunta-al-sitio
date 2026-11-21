@@ -37,13 +37,15 @@ const tituloCorto = (n) => String(n.titulo ?? n.id).split(',')[0].trim();
  *   nodo    nodo del índice ({ id, seguimiento, chips, aristas })
  *   vistos  ids de los nodos mostrados antes, en orden
  *   porId   Map id → nodo del índice
+ *   prioridad  id → peso del tipo del nodo (config.tipos): desempata aristas de igual peso, la oferta
+ *              antes que el contenido
  */
-export function chipsSeguimiento(nodo, { vistos = [], porId = new Map() } = {}) {
+export function chipsSeguimiento(nodo, { vistos = [], porId = new Map(), prioridad = () => 1 } = {}) {
   const base = nodo.seguimiento ?? [];
   const excluir = new Set([...vistos, nodo.id]);
   const salida = base.filter((s) => !s.nodo || !excluir.has(s.nodo));
   if (!(nodo.chips ?? []).length) {
-    for (const a of [...(nodo.aristas ?? [])].sort((x, y) => y.peso - x.peso)) {
+    for (const a of [...(nodo.aristas ?? [])].sort((x, y) => y.peso - x.peso || prioridad(y.a) - prioridad(x.a))) {
       if (salida.length >= base.length) break;
       const destino = porId.get(a.a);
       if (!destino || excluir.has(destino.id) || salida.some((s) => s.nodo === destino.id)) continue;
@@ -61,11 +63,11 @@ export function chipsSeguimiento(nodo, { vistos = [], porId = new Map() } = {}) 
  *   nodos   nodos del índice
  *   vistos  ids de los nodos mostrados antes
  */
-export function sugerenciasSinRespuesta(nodos, { vistos = [] } = {}) {
+export function sugerenciasSinRespuesta(nodos, { vistos = [], prioridad } = {}) {
   const saludo = nodos.find((n) => n.tipo === 'saludo');
   if (!saludo) return [];
   const porId = new Map(nodos.map((n) => [n.id, n]));
-  return chipsSeguimiento(saludo, { vistos: [...vistos, 'contacto'], porId }).filter((s) => s.nodo !== 'contacto');
+  return chipsSeguimiento(saludo, { vistos: [...vistos, 'contacto'], porId, prioridad }).filter((s) => s.nodo !== 'contacto');
 }
 
 /**

@@ -32,7 +32,7 @@ pregunta-al-sitio iniciar contenido --nombre "Nombre del sitio" --sitio dominio.
 pregunta-al-sitio validar contenido
 pregunta-al-sitio evaluar contenido [--borradores]
 pregunta-al-sitio calibrar contenido --escribir [--borradores] [--max-falso-rechazo 5%]
-pregunta-al-sitio cobertura contenido --fuentes fuentes
+pregunta-al-sitio cobertura contenido --fuentes fuentes [--normalizar]
 pregunta-al-sitio build contenido -o public/indice.json --widget
 ```
 
@@ -48,7 +48,9 @@ avances sin su respuesta.
    [schema.org](https://schema.org) que corresponde (`Hotel`, `Restaurant`, `ProfessionalService`…) y
    anótalo en `sitio.yaml > rubro`. Sus propiedades son la pauta de los nodos. Detalle en
    [referencia/rubros.md](referencia/rubros.md). No avances sin la respuesta.
-2. Junta las fuentes: lo que haya en `fuentes/` (o la carpeta que te indiquen), el sitio publicado si
+2. Junta las fuentes. Si te dan un sitio descargado con wget, conviértelo con
+   [herramientas/convertir.sh](herramientas/convertir.sh), que deja la línea `URL:` tal como la publica el
+   sitio (sin `.html`). Junta lo que haya en `fuentes/` (o la carpeta que te indiquen), el sitio publicado si
    te dan su URL (cada página relevante, incluido el pie y las páginas legales), documentos (PDF,
    presentaciones, textos) y preguntas reales de clientes si existen. No modifiques las fuentes. Si no
    hay ninguna, pregunta de dónde sacarlas antes de seguir.
@@ -82,6 +84,12 @@ propiedades que cubre), fuente (archivo y sección), aristas previstas y estado.
   juntas (ubicación, horario, pagos, políticas) y da un nodo a cada oferta concreta (habitación, tour,
   servicio, producto). Al final del mapa, lista las propiedades frecuentes que ningún nodo cubre y por qué.
   Los datos que faltan van a `informes/pendientes.md`, nunca inventados.
+- Si el sitio tiene **contenido** además de la oferta (artículos, novedades, tutoriales), dale un `tipo`
+  propio desde el mapa (`articulo`, `novedad`, `videotutorial`) y propón su prioridad en
+  `sitio.yaml > config.tipos` (`{ peso: 0.8 }`): la oferta debe ganar cuando coincide. Ver
+  [referencia/nodos.md](referencia/nodos.md#prioridad-por-tipo).
+- Aristas: evita las recíprocas y los nodos con una sola arista saliente. Si dos nodos se apuntan entre
+  sí, conserva la del "padre" (resumen → detalle).
 - Si una fuente profundiza un tema, propón dos nodos (resumen y detalle) unidos por una arista
   `profundiza`.
 
@@ -102,6 +110,10 @@ Con el mapa aprobado, escribe un archivo por nodo en `nodos/`. Reglas de campos 
 - `respuesta_corta` de 40 a 60 palabras, copiada de la fuente con ajustes mínimos; nombra al sitio.
 - 8 a 12 `preguntas` escritas como las escribiría un visitante, con su jerga.
 - `keywords` y `sinonimos` con las palabras que usaría alguien que no conoce los nombres internos.
+- No copies la `respuesta_corta` en las `preguntas` ni repitas el nombre del producto en todas: el nodo
+  sumaría de más y le ganaría al principal de ese tema.
+- Los artículos genéricos llevan pocas keywords (2 o 3), sin sinónimos, y sin el vocabulario de los
+  servicios.
   Las propiedades de schema.org ordenan los nodos, pero no son palabras de visitante: van solo en el campo
   `schema`.
 - Un dato que falta se marca `[REDACTAR …]` y el nodo queda en `estado: borrador`.
@@ -118,13 +130,16 @@ En `sitio.yaml` (detalle en [referencia/ambito-y-diccionario.md](referencia/ambi
 
 - `diccionario`: variantes y jerga que el visitante escribe distinto del sitio (`wsp: whatsapp`,
   `excel: planilla`, `cuanto cuesta: precio`).
-- `ambito.marcas`: el nombre del sitio, sus marcas y productos.
-- `ambito.derivar`: temas que el chat no responde aunque haya palabras parecidas (empleo, por ejemplo).
+- `ambito.marcas`: el nombre del sitio, sus marcas y productos, y los temas propios que el sitio explica
+  ("BPM"): sin marca, "¿qué es BPM?" se trata como cultura general.
+- `ambito.derivar`: temas que el chat no responde aunque haya palabras parecidas (empleo, precios no
+  publicados, registro de dominios). Las preguntas "fuera" se resuelven aquí, no con nodos.
 - Revisa `oferta`, `necesidad` y `genericas`, que `iniciar` deja con valores genéricos.
 
 ### 5. Set de evaluación — Alto
 
-Escribe `preguntas.yaml` con al menos 150 consultas, según
+Escribe `preguntas.yaml` con al menos 150 consultas, al menos el 10 % de una o dos palabras ("servicios",
+"hosting", "precios"), según
 [referencia/preguntas.md](referencia/preguntas.md). Es la medida de todo lo demás: si las consultas se
 parecen demasiado a las `preguntas` de los nodos, las métricas mienten.
 
@@ -150,11 +165,17 @@ Reglas de esta etapa:
   compromiso entre falso rechazo y fuga para cada umbral `Cm`; si la persona prefiere rechazar menos,
   usa `--max-falso-rechazo` (por ejemplo `3%`).
 - Las consultas `seguimiento` no entran en las métricas: `evaluar` informa su acierto aparte.
+- Lee los intervalos de confianza: con menos de 100 consultas de validación, una diferencia de 2 o 3
+  puntos es ruido. Si `evaluar` avisa de sobreajuste (ajuste más de 8 puntos sobre validación), deja de
+  corregir contra el ajuste y agrega consultas nuevas al set.
+- Si un artículo le gana a un servicio en consultas de oferta, no le quites palabras nodo por nodo: ajusta
+  `config.tipos`. `evaluar` muestra las métricas por familia (oferta y contenido).
 
 ### 7. Entrega — Alto
 
 Informe breve a la persona: métricas de validación, errores que quedan y por qué, nodos en borrador y
-pendientes abiertos. Con su aprobación, cambia los nodos a `estado: aprobado` y corre `build`.
+pendientes abiertos. Para que pruebe el widget antes de aprobar, construye con `build --borradores`.
+Con su aprobación, cambia los nodos a `estado: aprobado` y corre `build` sin `--borradores`.
 
 ## Cuándo volver a correr
 

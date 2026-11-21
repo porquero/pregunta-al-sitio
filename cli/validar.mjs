@@ -15,7 +15,8 @@
 //               expresiones regulares propias del sitio; sin "sensible" no distinguen mayúsculas
 import { leerSitio, leerNodos, nombresEnlazables, ESTADOS, FORMATOS } from './contenido/leer.mjs';
 import { idsEnlazados, textoVisible, ENLACE_MD, crearFiltroUrl, dominiosDe, dominioFrecuente, plegar } from './contenido/html.mjs';
-import { STOPWORDS } from '../src/motor/normalizar.js';
+import { STOPWORDS, crearTerminos, normalizar, prepararDiccionario } from '../src/motor/normalizar.js';
+import { PESO_TIPO_MIN, PESO_TIPO_MAX } from '../src/motor/config.js';
 
 /** Claves admitidas en los objetos de una tarjeta. */
 export const CLAVES_TARJETA = { items: ['titulo', 'texto', 'ruta'], cifras: ['numero', 'etiqueta'], cta: ['texto', 'destino'] };
@@ -40,7 +41,7 @@ function menciones(nombre, textos) {
 }
 
 /** Umbrales de los avisos de aristas y nombres enlazables. */
-export const LIMITES = { concentracion: 0.15, mencionesNombre: 10, comunNombre: 3 };
+export const LIMITES = { concentracion: 0.15, mencionesNombre: 10, comunNombre: 3, repeticionPreguntas: 0.6 };
 
 export const VALIDAR_D = {
   respuesta: { palabras_min: 40, palabras_max: 60, nombrar: null, nombrar_salvo: ['saludo'] },
@@ -205,6 +206,9 @@ export function validarNodos(nodos, sitio = {}, erroresLectura = []) {
     }
   }
   avisos.push(...avisosGrafo([...porId.values()]), ...avisosAutoenlace([...porId.values()], sitio, filtroUrl));
+  const tipos = revisarTipos(sitio.config?.tipos, [...porId.values()]);
+  errores.push(...tipos.errores);
+  avisos.push(...tipos.avisos, ...avisosRepeticion([...porId.values()], sitio.diccionario), ...avisosAmbito(sitio));
   return { errores, avisos };
 }
 
@@ -254,6 +258,92 @@ export function avisosAutoenlace(nodos, sitio, filtroUrl) {
     }
     if (sitio.autoenlazar_destino === 'enlace' && nombres.length && !filtroUrl(n.enlace)) {
       avisos.push(`${n.id}: sin enlace del sitio; con autoenlazar_destino: enlace, sus menciones quedan como texto`);
+    }
+  }
+  return avisos;
+}
+
+/**
+ * config.tipos: { tipo: { peso, respaldo } }. Errores: clave desconocida, peso fuera de 0 a 1,5 y nodos
+ * de respaldo sin ningún nodo de primera vuelta (fuera de saludo y contacto). Aviso: un tipo que ningún
+ * nodo usa (probable error de tipeo).
+ */
+export function revisarTipos(tipos, nodos) {
+  const errores = [];
+  const avisos = [];
+  if (tipos == null) return { errores, avisos };
+  if (typeof tipos !== 'object' || Array.isArray(tipos)) return { errores: ['sitio.yaml: config.tipos debe ser un mapa { tipo: { peso, respaldo } }'], avisos };
+  const usados = new Set(nodos.map((n) => n.tipo));
+  for (const [tipo, v] of Object.entries(tipos)) {
+    const donde = `sitio.yaml: config.tipos.${tipo}`;
+    if (!usados.has(tipo)) avisos.push(`${donde}: ningún nodo es de tipo '${tipo}'`);
+    if (v == null || typeof v !== 'object') {
+      errores.push(`${donde}: se espera { peso, respaldo }`);
+      continue;
+    }
+    for (const k of Object.keys(v)) if (!['peso', 'respaldo'].includes(k)) errores.push(`${donde}: clave '${k}' desconocida (peso, respaldo)`);
+    if (v.peso !== undefined && !(typeof v.peso === 'number' && v.peso >= PESO_TIPO_MIN && v.peso <= PESO_TIPO_MAX)) {
+      errores.push(`${donde}: peso '${v.peso}' fuera de ${PESO_TIPO_MIN} a ${PESO_TIPO_MAX}`);
+    }
+    if (v.respaldo !== undefined && typeof v.respaldo !== 'boolean') errores.push(`${donde}: respaldo debe ser true o false`);
+  }
+  const deRespaldo = (n) => tipos[n.tipo]?.respaldo === true;
+  const candidatos = nodos.filter((n) => n.enChat && n.tipo !== 'saludo' && n.id !== 'contacto');
+  if (candidatos.some(deRespaldo) && candidatos.every(deRespaldo)) {
+    errores.push('sitio.yaml: config.tipos marca como respaldo todos los nodos; la primera vuelta no tendría dónde buscar');
+  }
+  return { errores, avisos };
+}
+
+/**
+ * Un término del título repetido en más del 60 % de las preguntas del nodo, cuando ese término es el tema
+ * principal de otro nodo (su título corto empieza por él o está en su primera keyword): el campo
+ * preguntas suma de más y el nodo compite con el principal (un artículo que nombra el producto en cada
+ * pregunta). Solo nodos con 5 preguntas o más.
+ */
+export function avisosRepeticion(nodos, diccionario = {}) {
+  const terminos = crearTerminos(diccionario ?? {});
+  const enChat = nodos.filter((n) => n.enChat);
+  const principal = new Map();
+  for (const n of enChat) {
+    const temas = [terminos(n.titulo.split(',')[0])[0], ...terminos(n.keywords?.[0] ?? '')].filter(Boolean);
+    for (const t of temas) principal.set(t, [...(principal.get(t) ?? []), n.id]);
+  }
+  const avisos = [];
+  for (const n of enChat) {
+    if (n.preguntas.length < 5) continue;
+    const enPreguntas = n.preguntas.map((p) => new Set(terminos(p)));
+    for (const t of new Set(terminos(n.titulo))) {
+      const otros = (principal.get(t) ?? []).filter((id) => id !== n.id);
+      if (!otros.length || principal.get(t).includes(n.id)) continue;
+      const k = enPreguntas.filter((s) => s.has(t)).length;
+      if (k / n.preguntas.length > LIMITES.repeticionPreguntas) {
+        avisos.push(`${n.id}: '${t}' está en ${k} de ${n.preguntas.length} preguntas (más del 60 %) y es el tema de '${otros[0]}'; varía las preguntas para que no compitan con ese nodo`);
+      }
+    }
+  }
+  return avisos;
+}
+
+/**
+ * genericas se compara como frase, sin aplicar el diccionario (derivar y excluir_si también se comparan
+ * por términos con el diccionario). Si una fórmula genérica contiene una variante del diccionario y la
+ * lista no trae la forma canónica, el visitante que escribe la canónica no calza.
+ */
+export function avisosAmbito(sitio) {
+  const { mapa } = prepararDiccionario(sitio.diccionario ?? {});
+  const avisos = [];
+  for (const clave of ['genericas']) {
+    const lista = new Set((sitio.ambito?.[clave] ?? []).map(normalizar));
+    for (const entrada of sitio.ambito?.[clave] ?? []) {
+      const texto = ` ${normalizar(entrada)} `;
+      for (const [variante, canonica] of mapa) {
+        // Sin aviso si la lista ya trae la forma canónica.
+        if (texto.includes(` ${variante} `) && !lista.has(texto.replace(` ${variante} `, ` ${canonica} `).trim())) {
+          avisos.push(`sitio.yaml: ambito.${clave} '${entrada}' contiene '${variante}', que el diccionario cambia por '${canonica}'; se compara sin diccionario, así que agrega también la forma con '${canonica}'`);
+          break;
+        }
+      }
     }
   }
   return avisos;
