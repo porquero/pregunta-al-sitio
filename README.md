@@ -155,7 +155,7 @@ táctiles de 40 px o más, respeta `prefers-reduced-motion` y ocupa toda la pant
 
 ```
 contenido/
-  sitio.yaml       nombre, sitio (dominio), diccionario, ambito, validar y config (esta última la escribe calibrar)
+  sitio.yaml       nombre, sitio (dominio), diccionario, ambito, validar y config
   nodos/*.md       un nodo por archivo
   preguntas.yaml   set de evaluación
   informes/        inventario, mapa de nodos, conflictos y pendientes
@@ -183,6 +183,39 @@ estado: aprobado                # borrador | aprobado
 schema: { tipo: Service, propiedades: [serviceType, offers] }   # opcional: qué datos de schema.org cubre
 ---
 ```
+
+`sitio.yaml`, con las claves principales (`iniciar` crea la plantilla con `config: {}`; todo lo omitido usa los valores por defecto):
+
+```yaml
+nombre: Mi Sitio
+sitio: misitio.cl                 # el chat solo enlaza a este dominio y sus subdominios
+
+diccionario:                      # variante → forma canónica
+  wsp: whatsapp
+  cuanto cuesta: precio
+
+ambito:
+  marcas: [mi sitio, misitio, nombre-de-producto]   # productos y temas propios ("BPM")
+  genericas: [que es, como funciona, que hora es]   # cultura general: va a contacto
+  derivar: [busco empleo, precio sistema]           # temas que el chat no responde
+  excluir_si: [clima, horoscopo]                    # temas ajenos: sin marca, la consulta es general
+
+config:
+  # Los escribe `calibrar --escribir`:
+  motor: { k1: 1.6, pesos: { titulo: 2, preguntas: 1.5, keywords: 3, sinonimos: 2 }, similitudMin: 0.5, frase: 0.5, tfLog: [] }
+  zonas: { Ta: 0.5, Ca: 0.5, Ma: 0, Tm: 0.3, Cm: 0.2 }
+  normaPorTerminos: true          # consultas de una o dos palabras con escala proporcional
+  # Los escribes tú; calibrar los conserva:
+  opcionesMedia: 2                # opciones en "¿Te refieres a A o B?"
+  tipos:                          # prioridad por tipo de nodo (ver abajo)
+    articulo: { peso: 0.8 }
+  empate: 0.05                    # diferencia bajo la cual gana el tipo de mayor peso
+```
+
+`marcas`, `oferta`, `necesidad` y `genericas` se comparan como frases, sin aplicar el diccionario.
+`derivar` y `excluir_si` además se comparan por términos con el diccionario aplicado: con
+`cuanto cuesta: precio`, la entrada `precio sistema` también detecta "¿cuánto cuesta un sistema?". Detalle
+en [guia-contenido/referencia/ambito-y-diccionario.md](guia-contenido/referencia/ambito-y-diccionario.md).
 
 ### Prioridad por tipo de nodo
 
