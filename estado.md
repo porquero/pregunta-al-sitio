@@ -18,7 +18,7 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 ## Último trabajo (2026-11-21)
 
 - Motor: prioridad por tipo y límites vistos en Playa SPA real (91 nodos, 248 consultas; carpeta
-  `playa-chat`, solo leída; las pruebas usaron una copia). Sin commit.
+  `playa-chat`, solo leída; las pruebas usaron una copia). Commit `a08e07b`.
   - `config.tipos` `{ tipo: { peso, respaldo } }`: peso multiplica el puntaje antes de zona, margen y orden;
     `respaldo` = segunda vuelta. `config.empate` (5 %) desempata por prioridad en opciones y chips.
   - `normaPorTerminos` (consultas de 1 o 2 palabras) y `motor.tfLog: [preguntas]` (saturación); `calibrar`
@@ -122,7 +122,7 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 | 4+ | Enlaces entre nodos: `nodo:`, autoenlace, `validar` de ids rotos, clic en el widget | ✅ Tests + navegador · `975eb88` |
 | 4+ | Solo enlaces del sitio principal (`sitio` en `sitio.yaml`) | ✅ Tests + navegador · commit siguiente al `975eb88` |
 | 4+ | Hallazgos del sitio de turismo (11 puntos: widget al día, tarjetas, dominio, chips, cobertura, calibrar, erratas…) | ✅ `63abacd` |
-| 4+ | Prioridad por tipo de nodo, consultas cortas, saturación, ámbito, intervalos de confianza | ✅ Tests + métricas Playa + navegador · ⏳ commit |
+| 4+ | Prioridad por tipo de nodo, consultas cortas, saturación, ámbito, intervalos de confianza | ✅ Tests + métricas Playa + navegador · `a08e07b` |
 | 5 | Sitio de ejemplo, documentación, empaquetado y publicación | ⏳ |
 | 6 | (Opcional) Playa migra a la librería | ⏳ |
 
