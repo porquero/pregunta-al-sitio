@@ -33,7 +33,7 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
     89,2 → 90,5 %, prec. alta 87,7 → 91,8 %, en alta 58,2 → 62,2 %, falso rechazo 5,5 → 4,1 %, fuga
     7,7 → 0 %. Aceptación 9/9. `respaldo` medido: top-3 79,7 %, no recomendado como mecanismo principal.
 - README: ejemplo anotado de `sitio.yaml` (ámbito con `derivar`/`excluir_si`, `config` con las claves que
-  escribe `calibrar` y las que escribe uno: `opcionesMedia`, `tipos`, `empate`). Sin commit aún.
+  escribe `calibrar` y las que escribe uno: `opcionesMedia`, `tipos`, `empate`). Commit `cf691e8`.
 
 ## Último trabajo (2026-11-19)
 
