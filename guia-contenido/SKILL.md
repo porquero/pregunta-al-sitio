@@ -56,8 +56,10 @@ avances sin su respuesta.
    presentaciones, textos) y preguntas reales de clientes si existen. No modifiques las fuentes. Si no
    hay ninguna, pregunta de dónde sacarlas antes de seguir. Si la fuente es un documento sin sitio web
    (manual, norma, informe), escribe `sitio: localhost`: `build` genera además `index.html` con cada nodo
-   como sección y el chat dentro. Entonces el cuerpo del nodo es el texto de la sección (Markdown) y
-   `enlace: /id-del-nodo` hace que los enlaces entre secciones lleven a ella.
+   como sección, menú con buscador y el chat dentro. Entonces el cuerpo del nodo es el texto de la
+   sección (Markdown), `fuente` se muestra al pie de cada sección y `enlace: /documento#id` hace que los
+   enlaces entre secciones lleven a ella. Ajusta cabecera, nombres de grupo (por `tipo`) y pie en
+   `sitio.yaml > documento` (detalle en el README, "Documento local"); no escribas el HTML a mano.
 3. Si no existe la carpeta, créala con `iniciar`.
 4. Escribe `informes/inventario.md`: una fila por fuente con tipo, tema, secciones útiles y
    observaciones. Marca las fuentes que tengan una línea `URL:`.

@@ -66,6 +66,7 @@ export function parsearNodo(contenido, archivo = 'nodo.md') {
     enlace: enlaceDe(d),
     estado: String(d.estado ?? 'borrador'),
     derivacion: texto(d.derivacion),
+    fuente: texto(d.fuente),
     cuerpo: m[2].trim(),
     archivo: basename(archivo),
   };

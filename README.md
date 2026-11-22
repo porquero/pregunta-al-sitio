@@ -262,15 +262,33 @@ relativas.
 Para un documento sin sitio web propio (un manual, una norma, un informe), escribe `sitio: localhost`
 (o `127.0.0.1`). `build` arma el índice como siempre y escribe además `index.html` junto a él:
 
-- cada nodo aprobado es una sección (`<section id="id-del-nodo">`) con su título, la respuesta corta y
-  el cuerpo del nodo en Markdown (títulos, listas, tablas, citas, código e imágenes), más un índice al
-  comienzo; el nodo de saludo no lleva sección;
-- el chat va dentro: "Ver más" lleva a la sección del nodo y los enlaces de las respuestas cuya ruta
-  es el `enlace` de otro nodo (`/plazos`, `/plazos.html`, `http://localhost:3000/plazos`) pasan a ser
-  `#plazos`. Un nodo sin `enlace` pero con cuerpo también recibe "Ver más" hacia su sección. En el
+- la página tiene cabecera, un menú lateral fijo con buscador (por título y keywords; en el celular, un
+  botón lo despliega) que marca la sección a la vista, y las secciones agrupadas por `tipo` de nodo;
+- cada nodo aprobado es una tarjeta (`<section id="id-del-nodo">`) con antetítulo (grupo y número),
+  título, la respuesta corta, el cuerpo en Markdown (títulos, listas, tablas, citas, código e imágenes;
+  plegado bajo un botón si pasa de 120 palabras) y la `fuente` del nodo. El saludo no lleva sección;
+- el chat va dentro: "Ver más" lleva a la sección del nodo y los enlaces de las respuestas que apuntan
+  al `enlace` de otro nodo pasan a ser `#id`. Se reconoce la ruta con su fragmento, así que varios nodos
+  pueden estar en la misma página (`/rca#cierre`, `/rca#fauna`), y también sin `.html` o con host
+  (`/plazos.html`, `http://localhost:3000/plazos`). Un nodo sin `enlace` pero con cuerpo también recibe
+  "Ver más" hacia su sección. Al llegar a una sección, su cuerpo plegado se abre. En el
   celular, donde el chat ocupa toda la pantalla, seguir uno de esos enlaces cierra el chat para mostrar
   la sección;
 - el índice y el script van incrustados, así que el archivo funciona abierto directamente, sin servidor.
+
+Los textos de la página se ajustan en `sitio.yaml` (todo es opcional):
+
+```yaml
+documento:
+  antetitulo: Resolución de Calificación Ambiental     # línea sobre el título
+  titulo: Continuidad Operacional en Distrito Pleito   # por defecto, nombre
+  descripcion: Contenido de la resolución organizado por secciones.
+  grupos:                       # nombre y orden de los grupos por tipo; los demás tipos van después
+    proyecto: El proyecto
+    impacto: Impactos evaluados
+  detalle: Texto de la resolución   # botón del cuerpo plegado (por defecto "Texto completo")
+  pie: Texto basado en la resolución original.   # por defecto, nombre
+```
 
 `build` solo reemplaza un `index.html` que él mismo generó; si en la carpeta de salida hay otro, falla
 sin escribir nada y pide otra `--salida`.

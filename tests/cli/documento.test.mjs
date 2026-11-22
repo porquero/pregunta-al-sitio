@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { construirIndice } from '../../cli/build.mjs';
-import { esLocal, bloquesHtml, crearAnclas } from '../../cli/documento.mjs';
+import { esLocal, bloquesHtml, crearAnclas, gruposDe, PLEGAR_DESDE } from '../../cli/documento.mjs';
 import { crearFiltroUrl, dominiosDe } from '../../cli/contenido/html.mjs';
 
 const BIN = fileURLToPath(new URL('../../cli/bin.mjs', import.meta.url));
@@ -63,9 +63,36 @@ test('build sin localhost no cambia: sin documento y enlaces tal cual', () => {
   assert.equal(indice.nodos.find((n) => n.id === 'alcance').enlace, '/alcance.html');
 });
 
-test('Markdown de bloque: títulos bajan dos niveles, listas, tablas, código e imágenes; todo escapado', () => {
+test('anclas con fragmento: varios nodos en la misma página (/rca#id) no se confunden', () => {
+  const nodos = [
+    { id: 'aguas', enlace: '/rca#aguas-servidas' },
+    { id: 'cierre-faena', enlace: '/rca#cierre' },
+    { id: 'c95', enlace: 'http://localhost/rca.html#c95' },
+  ];
+  const anclas = crearAnclas(nodos, crearFiltroUrl(['localhost']));
+  assert.equal(anclas('/rca#cierre'), '#cierre-faena');
+  assert.equal(anclas('#cierre'), '#cierre-faena');
+  assert.equal(anclas('/rca.html#aguas-servidas'), '#aguas');
+  assert.equal(anclas('#c95'), '#c95');
+  assert.equal(anclas('#aguas'), '#aguas', 'un fragmento que ya es id de sección');
+  assert.equal(anclas('/rca'), '/rca', 'ruta compartida por varios nodos: sin destino único');
+  assert.equal(anclas('#otro'), '#otro');
+});
+
+test('grupos: los de documento.grupos en su orden y con su nombre; el resto por orden de aparición', () => {
+  const nodos = [{ id: 'a', tipo: 'medida' }, { id: 'b', tipo: 'impacto' }, { id: 'c', tipo: 'proyecto' }, { id: 'd', tipo: 'impacto' }];
+  const g = gruposDe(nodos, { proyecto: 'El proyecto', impacto: 'Impactos evaluados', vacio: 'Sin nodos' });
+  assert.deepEqual(g.map((x) => [x.titulo, x.nodos.map((n) => n.id)]), [
+    ['El proyecto', ['c']],
+    ['Impactos evaluados', ['b', 'd']],
+    ['Medida', ['a']],
+  ]);
+});
+
+test('Markdown de bloque: títulos bajan tres niveles, listas, tablas, código e imágenes; todo escapado', () => {
   const html = bloquesHtml('# Uno\n\nTexto <b>x</b> y **negrita**.\n\n1. a\n2. b\n\n```\n<código>\n```\n\n> cita\n\n![logo](/logo.png) ![mal](javascript:alert)\n\n---');
-  assert.match(html, /<h3>Uno<\/h3>/);
+  assert.match(html, /<h4>Uno<\/h4>/);
+  assert.match(bloquesHtml('# Uno', { nivel: 1 }), /<h2>Uno<\/h2>/);
   assert.match(html, /<p>Texto &lt;b&gt;x&lt;\/b&gt; y <strong>negrita<\/strong>\.<\/p>/);
   assert.match(html, /<ol><li>a<\/li><li>b<\/li><\/ol>/);
   assert.match(html, /<pre><code>&lt;código&gt;<\/code><\/pre>/);
@@ -80,7 +107,10 @@ test('comando build: escribe index.html con secciones, índice incrustado y widg
   assert.equal(r.status, 0, r.stderr);
   assert.match(r.stdout, /documento local \(sitio: localhost\): 3 secciones/);
   const html = readFileSync(join(dir, 'index.html'), 'utf8');
-  assert.match(html, /<section id="alcance">/);
+  assert.match(html, /<section class="seccion" id="alcance" aria-labelledby="t-alcance">/);
+  assert.match(html, /<p class="ceja">Seccion · 01<\/p>/);
+  assert.match(html, /<input id="buscar" type="search"/);
+  assert.match(html, /<li data-buscar="alcance"><a href="#alcance">Título de alcance<\/a><\/li>/);
   assert.match(html, /<a href="#plazos">plazos<\/a>/, 'nodo:plazos en el cuerpo es un ancla de la página');
   assert.match(html, /<table>/);
   assert.match(html, /<script type="application\/json" id="pas-indice">/);
@@ -95,4 +125,23 @@ test('comando build: escribe index.html con secciones, índice incrustado y widg
   assert.equal(ajeno.status, 1);
   assert.match(ajeno.stderr, /no lo generó pregunta-al-sitio/);
   assert.equal(readFileSync(join(dir, 'index.html'), 'utf8'), '<!doctype html><p>mío</p>');
+});
+
+test('sitio.yaml > documento: cabecera, grupos, pie; cuerpo largo plegado y fuente del nodo', () => {
+  const dir = documento();
+  writeFileSync(
+    join(dir, 'sitio.yaml'),
+    'nombre: Visor\nsitio: localhost\ndocumento:\n  antetitulo: Resolución\n  titulo: Proyecto X\n  descripcion: Texto organizado.\n  grupos: { contacto: Ayuda, seccion: Contenido }\n  detalle: Texto de la resolución\n  pie: Basado en la resolución original.\n',
+  );
+  const largo = Array(PLEGAR_DESDE + 5).fill('palabra').join(' ');
+  writeFileSync(join(dir, 'nodos', 'c-plazos.md'), nodo('plazos', 'seccion', 'fuente: "RCA, Considerando 4"\n', largo));
+  assert.equal(correr('build', dir).status, 0);
+  const html = readFileSync(join(dir, 'index.html'), 'utf8');
+  assert.match(html, /<title>Visor · Proyecto X<\/title>/);
+  assert.match(html, /<p class="antetitulo">Resolución<\/p>\n<h1>Proyecto X<\/h1>\n<p class="descripcion">Texto organizado\.<\/p>/);
+  assert.ok(html.indexOf('<h2 id="grupo-contacto">Ayuda</h2>') < html.indexOf('<h2 id="grupo-seccion">Contenido</h2>'));
+  assert.match(html, /<details><summary>Texto de la resolución<\/summary><div class="cuerpo"><p>palabra/);
+  assert.match(html, /<p class="fuente">Fuente: RCA, Considerando 4<\/p>/);
+  assert.match(html, /<footer>Basado en la resolución original\.<\/footer>/);
+  assert.doesNotMatch(html.split('id="alcance"')[1].split('</section>')[0], /<details>/, 'cuerpo corto: a la vista');
 });

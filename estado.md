@@ -51,7 +51,15 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 - Widget: con el panel a pantalla completa (`PANTALLA_COMPLETA`, ≤ 480 px, compartida con el CSS), un
   clic en un enlace a un `#fragmento` de la misma página ("Ver más" del documento local) cierra el chat sin
   devolver el foco al botón, y el navegador va a la sección. En escritorio el chat sigue abierto.
-  `esAnclaDeLaPagina` en `acciones.js`. Probado en el navegador a 375 px y en escritorio. Commit `b22d200`.
+  `esAnclaDeLaPagina` en `acciones.js`. Probado en el navegador a 375 px y en escritorio.
+- Documento local con el diseño de referencia de `Visor-Ambiental-PDF/rca.html` (hecho a mano en otro
+  chat): cabecera, menú lateral fijo con buscador (título + keywords, "Ninguna sección coincide") que
+  marca la sección a la vista (`aria-current`) y se despliega con botón en ≤ 900 px, grupos por `tipo`,
+  tarjetas con antetítulo "Grupo · 01", cuerpo plegado en `<details>` si pasa de 120 palabras (se abre al
+  llegar por ancla), `fuente` al pie, impresión. `sitio.yaml > documento`: antetitulo, titulo,
+  descripcion, grupos, detalle, pie. `leer.mjs` lee `fuente`. Anclas con fragmento: `/rca#cierre` va a
+  su nodo aunque todos compartan `/rca` (antes todos iban al primero). Probado con una copia del
+  contenido del Visor (46 secciones, 0 enlaces rotos), escritorio y 375 px. Sin commit aún. Commit `b22d200`.
 
 ## Último trabajo (2026-11-19)
 
