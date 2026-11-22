@@ -63,7 +63,7 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 - Campo de nodo `texto_original`: el texto de la fuente del que sale `respuesta_corta`, sin resumir. No
   entra al índice ni a la búsqueda; el documento local lo muestra plegado bajo "Texto original"
   (`documento.detalle` lo renombra) y deja el cuerpo a la vista. Sin él, sigue plegándose el cuerpo
-  largo. Guía (`nodos.md`, SKILL.md) y README. Sin commit aún. Commit `b22d200`.
+  largo. Guía (`nodos.md`, SKILL.md) y README. Commit `ed1cc20`. Commit `b22d200`.
 
 ## Último trabajo (2026-11-19)
 
