@@ -33,6 +33,7 @@ pregunta-al-sitio validar contenido
 pregunta-al-sitio evaluar contenido [--borradores]
 pregunta-al-sitio calibrar contenido --escribir [--borradores] [--max-falso-rechazo 5%]
 pregunta-al-sitio cobertura contenido --fuentes fuentes [--normalizar]
+pregunta-al-sitio vocabulario contenido --fuentes fuentes [--min 5]
 pregunta-al-sitio build contenido -o public/indice.json --widget
 ```
 
@@ -123,6 +124,12 @@ Corre `validar` hasta que no queden errores y `pregunta-al-sitio cobertura conte
 hasta que salga sin fuentes sin nodo (código 0). Revisa también los avisos de `validar` sobre aristas
 (recíprocas, una sola saliente, nodos que reciben aristas de más del 15 % de los nodos) y, si el sitio usa
 `autoenlazar`, sobre nombres enlazables comunes.
+
+Corre también `pregunta-al-sitio vocabulario contenido --fuentes fuentes`: lista las palabras que las
+fuentes repiten (5 veces o más) y que, escritas solas, el chat manda a contacto. Un visitante usa el
+vocabulario del documento, así que una palabra frecuente sin respuesta delata un tema sin nodo o sin
+keywords. Para cada una: agrégala a `keywords` o `sinonimos` del nodo que la trata, crea un nodo si el
+tema falta, o anótala en `sitio.yaml > vocabulario.ignorar` si es administrativa ("deberá", "anexo").
 
 ### 4. Diccionario y ámbito
 

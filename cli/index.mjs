@@ -18,6 +18,8 @@ import { revisarPreguntas } from './evaluacion/preguntas.mjs';
 import { iniciarSitio, instalarSkill } from './iniciar.mjs';
 import { widgetAlDia } from './empaquetar.mjs';
 import { cobertura } from './cobertura.mjs';
+import { vocabulario, leerFuentes } from './vocabulario.mjs';
+import { leerSitio } from './contenido/leer.mjs';
 
 const AYUDA = `Uso: pregunta-al-sitio <comando> [carpeta] [opciones]
 
@@ -47,6 +49,13 @@ Comandos:
               --fuentes <carpeta>   carpeta de fuentes (por defecto fuentes/ junto a la carpeta)
               --normalizar          ignora ".html", "index.html" y la barra final al comparar
               Sale con código 1 si alguna fuente no tiene nodo.
+  vocabulario lista las palabras frecuentes de las fuentes que el chat no responde (terminan en contacto)
+              --fuentes <carpeta>   carpeta de fuentes (por defecto fuentes/ junto a la carpeta)
+              --min <n>             mínimo de apariciones (por defecto 5)
+              --largo <n>           largo mínimo de la palabra (por defecto 5)
+              --borradores          incluye los nodos en borrador
+              Las palabras que no deben tener nodo van en sitio.yaml > vocabulario.ignorar.
+              Sale con código 1 si alguna palabra queda sin respuesta.
 
 La carpeta por defecto es la actual.`;
 
@@ -63,6 +72,8 @@ const OPCIONES = {
   widget: { type: 'boolean', default: false },
   fuentes: { type: 'string' },
   normalizar: { type: 'boolean', default: false },
+  min: { type: 'string' },
+  largo: { type: 'string' },
   'max-falso-rechazo': { type: 'string' },
   ayuda: { type: 'boolean', short: 'h', default: false },
 };
@@ -99,6 +110,24 @@ const comandos = {
       console.log('Regla: una fuente con URL: es un nodo con enlace igual a esa URL (excepciones en sitio.yaml > cobertura.excluir).');
     }
     return sinNodo.length ? 1 : 0;
+  },
+
+  vocabulario(dir, v) {
+    const carpeta = v.fuentes ?? join(dir, '..', 'fuentes');
+    const entero = (x, defecto) => (x === undefined ? defecto : Math.max(1, Number.parseInt(x, 10) || defecto));
+    const sitio = leerSitio(dir);
+    const { total, sinResultado } = vocabulario(indiceDe(dir, v), leerFuentes(carpeta), {
+      min: entero(v.min, 5),
+      largoMin: entero(v.largo, 5),
+      ignorar: sitio.vocabulario?.ignorar ?? [],
+    });
+    for (const s of sinResultado) console.log(`sin resultado  ${s.palabra}  (${s.veces} veces)`);
+    console.log(`
+${total} palabras frecuentes · ${total - sinResultado.length} con resultado · ${sinResultado.length} sin resultado`);
+    if (sinResultado.length) {
+      console.log('Agrega cada palabra a keywords o sinonimos del nodo que corresponda, crea un nodo si el tema falta, o a sitio.yaml > vocabulario.ignorar si es administrativa.');
+    }
+    return sinResultado.length ? 1 : 0;
   },
 
   skill(dir) {

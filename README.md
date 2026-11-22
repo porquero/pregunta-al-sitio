@@ -200,6 +200,9 @@ ambito:
   derivar: [busco empleo, precio sistema]           # temas que el chat no responde
   excluir_si: [clima, horoscopo]                    # temas ajenos: sin marca, la consulta es general
 
+vocabulario:
+  ignorar: [debera, anexo]        # palabras frecuentes de las fuentes que no necesitan nodo
+
 config:
   # Los escribe `calibrar --escribir`:
   motor: { k1: 1.6, pesos: { titulo: 2, preguntas: 1.5, keywords: 3, sinonimos: 2 }, similitudMin: 0.5, frase: 0.5, tfLog: [] }
@@ -292,6 +295,7 @@ El detalle de cada campo, del diccionario, del ámbito y del set de preguntas es
 | `evaluar <carpeta>` | revisa `preguntas.yaml` y mide el chat: métricas con intervalo de confianza (Wilson 95 %), por familia (oferta y contenido) si hay `config.tipos`, y errores de ajuste y de validación |
 | `calibrar <carpeta> --escribir [--max-falso-rechazo 5%]` | elige parámetros y umbrales del buscador y los guarda en `sitio.yaml` (conserva `tipos` y `opcionesMedia`); muestra el compromiso entre falso rechazo y fuga por umbral y cuántos títulos y keywords sueltos terminan en contacto |
 | `cobertura <carpeta> --fuentes <fuentes> [--normalizar]` | lista las fuentes con línea `URL:` sin un nodo cuyo `enlace` sea esa URL; sale con 1 si hay. `--normalizar` ignora `.html` e `index.html` |
+| `vocabulario <carpeta> --fuentes <fuentes> [--min 5] [--largo 5]` | cuenta las palabras de las fuentes y lista las frecuentes que, escritas solas, terminan en contacto ("evento", "caudal"); sale con 1 si hay. Las administrativas se declaran en `sitio.yaml > vocabulario.ignorar` |
 
 `build`, `evaluar` y `calibrar` aceptan `--borradores` para incluir los nodos sin aprobar. Objetivos de
 `evaluar`: top-3 ≥ 90 %, precisión en zona alta ≥ 95 %, fuga de conocimiento general ≤ 3 % y falso
