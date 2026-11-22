@@ -10,7 +10,10 @@
 // fuente. Sin texto_original, un cuerpo largo es el que se pliega. Se configura en sitio.yaml > documento:
 //   antetitulo   línea sobre el título (por defecto, ninguna)
 //   titulo       título de la página (por defecto, nombre)
-//   descripcion  párrafo bajo el título
+//   descripcion  bajada del título (por defecto, descripcion o rubro.descripcion de sitio.yaml)
+//   presentacion texto Markdown de una sección "Presentación" al comienzo
+//   preguntas    preguntas de ejemplo bajo el título, que abren el chat (por defecto, la primera
+//                pregunta de un nodo de cada grupo; [] las quita)
 //   grupos       { tipo: "Nombre del grupo" }: nombre y orden de los grupos; los tipos que falten van
 //                después, con el tipo como nombre
 //   detalle      texto del botón que despliega lo plegado (por defecto "Texto original")
@@ -196,6 +199,27 @@ export function gruposDe(nodos, nombres = {}) {
     .filter((g) => g.nodos.length);
 }
 
+/** Bajada del título: documento.descripcion, si no descripcion y si no rubro.descripcion de sitio.yaml. */
+export function descripcionDe(sitio = {}) {
+  const d = [sitio.documento?.descripcion, sitio.descripcion, sitio.rubro?.descripcion].find((x) => typeof x === 'string' && x.trim());
+  return d ? d.trim() : null;
+}
+
+/** Máximo de preguntas de ejemplo en la cabecera. */
+export const EJEMPLOS_MAX = 4;
+
+/**
+ * Preguntas de ejemplo de la cabecera: documento.preguntas si es una lista ([] las quita); si no, la
+ * primera pregunta del primer nodo de cada grupo, sin el de contacto.
+ */
+export function preguntasDe(grupos, propias) {
+  if (Array.isArray(propias)) return propias.map((p) => String(p).trim()).filter(Boolean).slice(0, EJEMPLOS_MAX);
+  return grupos
+    .map((g) => g.nodos.find((n) => n.tipo !== 'contacto' && n.preguntas?.length)?.preguntas[0])
+    .filter(Boolean)
+    .slice(0, EJEMPLOS_MAX);
+}
+
 const ESTILOS = `
 :root { --fondo: #f6f7f9; --tarjeta: #fff; --texto: #1b2430; --suave: #5b6675; --linea: #e1e5eb; --acento: #1f4e79;
   --acento-suave: #e8f0f8; --resalte: #fff6d6; --cabecera: #12263a; color-scheme: light dark; }
@@ -213,6 +237,18 @@ header { background: var(--cabecera); color: #fff; padding: 36px 16px 32px; }
 .antetitulo { letter-spacing: .14em; text-transform: uppercase; font-size: 12px; opacity: .75; margin: 0 0 8px; }
 header h1 { font: 600 clamp(24px, 4vw, 38px)/1.2 Georgia, "Times New Roman", serif; margin: 0 0 10px; }
 header p.descripcion { margin: 0; max-width: 760px; opacity: .88; }
+.resumen-doc { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin-top: 22px; }
+.preguntar { padding: 10px 18px; border: 0; border-radius: 999px; background: #fff; color: var(--cabecera); font: inherit; font-weight: 600; cursor: pointer; }
+.preguntar:hover { background: #e8f0f8; }
+.cifras { font-size: 14px; opacity: .75; }
+.ejemplos { margin-top: 16px; }
+.ejemplos p { margin: 0 0 8px; font-size: 13px; opacity: .75; }
+.ejemplos ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.ejemplos button { padding: 6px 12px; border: 1px solid rgba(255, 255, 255, .35); border-radius: 999px; background: transparent; color: #fff; font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.ejemplos button:hover { background: rgba(255, 255, 255, .12); }
+header button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.inicio-menu { margin-bottom: 4px !important; }
+.presentacion h3 { margin-bottom: 10px; }
 .diseno { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 32px; max-width: 1180px; margin: 0 auto; padding: 28px 16px 96px; }
 nav { position: sticky; top: 16px; align-self: start; max-height: calc(100vh - 32px); overflow: auto; padding-right: 8px; font-size: 14px; }
 nav input { width: 100%; padding: 9px 12px; border: 1px solid var(--linea); border-radius: 8px; background: var(--tarjeta); color: var(--texto); font: inherit; margin-bottom: 14px; }
@@ -254,7 +290,7 @@ footer { border-top: 1px solid var(--linea); padding: 22px 16px; text-align: cen
   .seccion { padding: 18px; }
 }
 @media print {
-  nav, #menu, pregunta-al-sitio { display: none; }
+  nav, #menu, pregunta-al-sitio, .resumen-doc .preguntar, .ejemplos { display: none; }
   .diseno { display: block; }
   .seccion { break-inside: avoid; box-shadow: none; }
   details:not([open]) > .cuerpo { display: block; }
@@ -353,6 +389,21 @@ export function paginaLocal({ indice, nodos, sitio = {}, widget, url = urlSegura
   };
   const contenido = grupos.map((g) => `<h2 id="${escapar(g.id)}">${escapar(g.titulo)}</h2>\n${g.nodos.map((n, i) => seccion(n, g, i)).join('\n')}`).join('\n');
 
+  // Cabecera: bajada, cifras del documento, botón que abre el chat y preguntas de ejemplo.
+  const bajada = descripcionDe(sitio);
+  const cifras = `${nodos.length} ${nodos.length === 1 ? 'sección' : 'secciones'}${grupos.length > 1 ? ` en ${grupos.length} grupos` : ''}`;
+  const ejemplos = preguntasDe(grupos, doc.preguntas)
+    .map((p) => `<li><button type="button" data-pregunta-al-sitio="${escapar(p)}">${escapar(p)}</button></li>`)
+    .join('');
+  const resumen =
+    `<div class="resumen-doc"><button class="preguntar" type="button" data-pregunta-al-sitio="">Hacer una pregunta</button>` +
+    `<span class="cifras">${escapar(cifras)}</span></div>\n` +
+    (ejemplos ? `<div class="ejemplos"><p>Puedes preguntar, por ejemplo:</p><ul>${ejemplos}</ul></div>\n` : '');
+  const presentacion = doc.presentacion
+    ? `<section class="seccion presentacion" id="presentacion" aria-labelledby="t-presentacion"><h3 id="t-presentacion">Presentación</h3>${bloque(String(doc.presentacion))}</section>\n`
+    : '';
+  const enlacePresentacion = presentacion ? '<ul class="inicio-menu"><li><a href="#presentacion">Presentación</a></li></ul>\n' : '';
+
   return `<!doctype html>
 <html lang="es">
 <head>
@@ -360,25 +411,25 @@ export function paginaLocal({ indice, nodos, sitio = {}, widget, url = urlSegura
 <meta name="viewport" content="width=device-width, initial-scale=1">
 ${MARCA}
 <title>${escapar(titulo === nombre ? nombre : `${nombre} · ${titulo}`)}</title>
-${doc.descripcion ? `<meta name="description" content="${escapar(doc.descripcion)}">\n` : ''}<style>${ESTILOS}
+${bajada ? `<meta name="description" content="${escapar(bajada)}">\n` : ''}<style>${ESTILOS}
 </style>
 </head>
 <body>
 <a class="saltar" href="#contenido">Ir al contenido</a>
 <header><div class="ancho">
 ${doc.antetitulo ? `<p class="antetitulo">${escapar(doc.antetitulo)}</p>\n` : ''}<h1>${escapar(titulo)}</h1>
-${doc.descripcion ? `<p class="descripcion">${escapar(doc.descripcion)}</p>\n` : ''}</div></header>
+${bajada ? `<p class="descripcion">${escapar(bajada)}</p>\n` : ''}${resumen}</div></header>
 <div class="diseno">
 <nav aria-label="Índice">
 <button id="menu" type="button" aria-expanded="false" aria-controls="menu-cuerpo">Índice de secciones</button>
 <div class="menu-cuerpo" id="menu-cuerpo">
 <input id="buscar" type="search" placeholder="Buscar sección…" aria-label="Buscar sección" autocomplete="off">
-${menu}
+${enlacePresentacion}${menu}
 <p class="sin-resultados" hidden>Ninguna sección coincide.</p>
 </div>
 </nav>
 <main id="contenido">
-${contenido}
+${presentacion}${contenido}
 </main>
 </div>
 <footer>${escapar(doc.pie ?? nombre)}</footer>

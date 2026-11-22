@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { construirIndice } from '../../cli/build.mjs';
-import { esLocal, bloquesHtml, crearAnclas, gruposDe, PLEGAR_DESDE } from '../../cli/documento.mjs';
+import { esLocal, bloquesHtml, crearAnclas, gruposDe, descripcionDe, preguntasDe, PLEGAR_DESDE } from '../../cli/documento.mjs';
 import { crearFiltroUrl, dominiosDe } from '../../cli/contenido/html.mjs';
 
 const BIN = fileURLToPath(new URL('../../cli/bin.mjs', import.meta.url));
@@ -163,4 +163,32 @@ test('texto_original: plegado bajo "Texto original", el cuerpo queda a la vista 
   );
   assert.equal((seccion.match(/<details>/g) ?? []).length, 1);
   assert.doesNotMatch(readFileSync(join(dir, 'indice.json'), 'utf8'), /Segundo párrafo/);
+});
+
+test('cabecera: bajada con respaldo, cifras, botón al chat y preguntas de ejemplo; presentación opcional', () => {
+  assert.equal(descripcionDe({ documento: { descripcion: 'A' }, descripcion: 'B', rubro: { descripcion: 'C' } }), 'A');
+  assert.equal(descripcionDe({ descripcion: ' B ', rubro: { descripcion: 'C' } }), 'B');
+  assert.equal(descripcionDe({ rubro: { descripcion: 'C' } }), 'C');
+  assert.equal(descripcionDe({}), null);
+  const grupos = [
+    { nodos: [{ tipo: 'contacto', preguntas: ['¿Contacto?'] }] },
+    { nodos: [{ tipo: 'seccion', preguntas: [] }, { tipo: 'seccion', preguntas: ['¿Plazos?', '¿Otra?'] }] },
+  ];
+  assert.deepEqual(preguntasDe(grupos), ['¿Plazos?']);
+  assert.deepEqual(preguntasDe(grupos, ['¿Una?', ' ']), ['¿Una?']);
+  assert.deepEqual(preguntasDe(grupos, []), []);
+
+  const dir = documento();
+  writeFileSync(
+    join(dir, 'sitio.yaml'),
+    'nombre: Manual\nsitio: localhost\nrubro:\n  descripcion: Manual de la comunidad.\ndocumento:\n  presentacion: |\n    Este manual reúne las **normas** del edificio.\n',
+  );
+  assert.equal(correr('build', dir).status, 0);
+  const html = readFileSync(join(dir, 'index.html'), 'utf8');
+  assert.match(html, /<p class="descripcion">Manual de la comunidad\.<\/p>/);
+  assert.match(html, /<meta name="description" content="Manual de la comunidad\.">/);
+  assert.match(html, /<button class="preguntar" type="button" data-pregunta-al-sitio="">Hacer una pregunta<\/button><span class="cifras">3 secciones en 2 grupos<\/span>/);
+  assert.match(html, /<button type="button" data-pregunta-al-sitio="¿Qué es alcance\?">¿Qué es alcance\?<\/button>/);
+  assert.match(html, /<main id="contenido">\n<section class="seccion presentacion" id="presentacion"[^>]*><h3 id="t-presentacion">Presentación<\/h3><div class="cuerpo"><p>Este manual reúne las <strong>normas<\/strong> del edificio\.<\/p>/);
+  assert.match(html, /<li><a href="#presentacion">Presentación<\/a><\/li>/);
 });

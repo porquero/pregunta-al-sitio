@@ -60,7 +60,9 @@ avances sin su respuesta.
    sección (Markdown), `fuente` se muestra al pie de cada sección, `texto_original` guarda el texto de la
    fuente del que sacaste `respuesta_corta` (cópialo sin resumir ni corregir; la página lo muestra plegado
    para contrastar) y `enlace: /documento#id` hace que los
-   enlaces entre secciones lleven a ella. Ajusta cabecera, nombres de grupo (por `tipo`) y pie en
+   enlaces entre secciones lleven a ella. Redacta `documento.descripcion` (una o dos frases para el
+   lector, sin notas internas) y `documento.presentacion` (qué es el documento y cómo usar la página).
+   Ajusta además cabecera, nombres de grupo (por `tipo`) y pie en
    `sitio.yaml > documento` (detalle en el README, "Documento local"); no escribas el HTML a mano.
 3. Si no existe la carpeta, créala con `iniciar`.
 4. Escribe `informes/inventario.md`: una fila por fuente con tipo, tema, secciones útiles y
