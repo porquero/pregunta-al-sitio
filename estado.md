@@ -51,7 +51,7 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 - Widget: con el panel a pantalla completa (`PANTALLA_COMPLETA`, ≤ 480 px, compartida con el CSS), un
   clic en un enlace a un `#fragmento` de la misma página ("Ver más" del documento local) cierra el chat sin
   devolver el foco al botón, y el navegador va a la sección. En escritorio el chat sigue abierto.
-  `esAnclaDeLaPagina` en `acciones.js`. Probado en el navegador a 375 px y en escritorio.
+  `esAnclaDeLaPagina` en `acciones.js`. Probado en el navegador a 375 px y en escritorio. Commit `b22d200`.
 - Documento local con el diseño de referencia de `Visor-Ambiental-PDF/rca.html` (hecho a mano en otro
   chat): cabecera, menú lateral fijo con buscador (título + keywords, "Ninguna sección coincide") que
   marca la sección a la vista (`aria-current`) y se despliega con botón en ≤ 900 px, grupos por `tipo`,
@@ -70,7 +70,8 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
   (`documento.preguntas`; por defecto la primera pregunta de un nodo de cada grupo, sin contacto; `[]` las
   quita). `documento.presentacion` (Markdown): sección "Presentación" al comienzo y en el menú. Probado con
   la copia del Visor en escritorio y 375 px. Nota: el `rubro.descripcion` del Visor trae "Público:
-  comunidad y ciudadanos.", que es una nota interna; conviene escribir `documento.descripcion`. Sin commit aún.
+  comunidad y ciudadanos.", que es una nota interna; conviene escribir `documento.descripcion`. Commit `526af88` (su
+  documentación del README quedó en `8938bb5`).
 - Widget: opción `metricas` (`data-metricas`). Por cada consulta ESCRITA (submit del cuadro; no chips,
   opciones, sugerencias ni disparadores) envía `{ texto (300, sin modificar), url (origin + pathname),
   respuesta }`. `respuesta` (pedido del usuario, además del encargo original): título del nodo, "Opciones: A
@@ -78,13 +79,13 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
   JSON; si falta o falla, fetch keepalive + `credentials: 'omit'`; errores silenciosos. Evento
   `pas:consulta` siempre (bubbles + composed). `src/widget/metricas.js`; `dialogo.preguntar(texto,
   { alResponder })`. `dev/index.html` envía a `/dev/webhook?metricas`. Probado en el navegador: 2 consultas
-  escritas → 2 POST; chip y disparador → nada.
+  escritas → 2 POST; chip y disparador → nada. Commit `8938bb5`.
 - Recolector PHP en el repo: `servidor/recolector/` (`registrar-consultas.php` + `README.md`, la guía de
   instalación y privacidad), copiado de `Escritorio/tmp` (los originales siguen ahí). Guarda la 4.ª columna
   RESPUESTA. El origen por defecto pasó del dominio del cliente a `misitio.cl` (sin datos de sitios en el
   paquete). `servidor` va en `files` del paquete. `tests/servidor/recolector.test.mjs` lo prueba con
   `php -S` (se omite sin PHP): columnas, limpieza, url sin query, fórmulas, 403/405/400, preflight.
-  Sin commit aún. Commit `b22d200`.
+  Commit `8938bb5`.
 
 ## Último trabajo (2026-11-19)
 
