@@ -24,7 +24,8 @@ export function dominiosDe(sitio) {
   const valores = sitio === undefined || sitio === null ? [] : [].concat(sitio);
   return valores
     .map((v) => String(v).trim().toLowerCase().replace(/\*/g, '').replace(/^[a-z]+:\/\//, '').split(/[/?#:]/)[0].replace(/^www\./, '').replace(/^\.+|\.+$/g, ''))
-    .filter((d) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d)); // Descarta marcadores como "[REDACTAR …]".
+    // Descarta marcadores como "[REDACTAR …]". "localhost" es el documento local (cli/documento.mjs).
+    .filter((d) => d === 'localhost' || /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(d));
 }
 
 /**

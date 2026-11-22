@@ -2,6 +2,7 @@
 import { createHash } from 'node:crypto';
 import { leerSitio, leerNodos, nombresEnlazables } from './contenido/leer.mjs';
 import { respuestaHtml, crearAutoenlace, crearFiltroUrl, dominiosDe, dominioFrecuente, urlSegura } from './contenido/html.mjs';
+import { esLocal, seccionesDe, crearAnclas } from './documento.mjs';
 
 const MAX_CHIPS = 4;
 const MAX_CHIPS_ARISTAS = 3;
@@ -51,7 +52,13 @@ export function construirIndice(dir, { borradores = false } = {}) {
       avisos.push(`sitio.yaml no define sitio: uso ${inferido}, el dominio más frecuente en los enlace de los nodos. Escríbelo en sitio.yaml.`);
     }
   }
-  const filtro = crearFiltroUrl(dominios);
+  // Sitio local: los enlaces al enlace de un nodo pasan a ser anclas de su sección en index.html.
+  const local = esLocal(sitio.sitio);
+  const secciones = local ? seccionesDe(visibles) : [];
+  const filtroSitio = crearFiltroUrl(dominios);
+  const anclas = local ? crearAnclas(secciones, filtroSitio) : null;
+  const filtro = anclas ? (u) => anclas(filtroSitio(u)) : filtroSitio;
+  const conSeccion = new Set(secciones.map((n) => n.id));
   let omitidos = 0;
   const url = (u) => {
     const r = filtro(u);
@@ -83,7 +90,8 @@ export function construirIndice(dir, { borradores = false } = {}) {
     // Solo aristas hacia nodos que el chat puede mostrar.
     aristas: n.aristas.filter((a) => porId.has(a.a)),
     chips: n.chips.map((c) => (c.a ? { texto: c.texto, a: c.a } : c.texto)),
-    enlace: url(n.enlace), // "Ver más": también solo dentro del sitio.
+    // "Ver más": también solo dentro del sitio. En el documento local, un nodo con cuerpo lleva a su sección.
+    enlace: url(n.enlace) ?? (local && n.cuerpo && conSeccion.has(n.id) ? `#${n.id}` : null),
     seguimiento: seguimientoDe(n, porId, sitio.config?.tipos),
     respuesta: respuestaHtml(n, sitio, enlaces),
   }));
@@ -99,5 +107,6 @@ export function construirIndice(dir, { borradores = false } = {}) {
     derivacion,
   };
   const version = createHash('sha256').update(JSON.stringify(cuerpo)).digest('hex').slice(0, 12);
-  return { indice: { version, ...cuerpo }, errores, avisos, omitidos, dominios };
+  const documento = local ? { secciones, url: filtro } : null;
+  return { indice: { version, ...cuerpo }, errores, avisos, omitidos, dominios, documento };
 }

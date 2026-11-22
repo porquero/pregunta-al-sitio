@@ -257,6 +257,22 @@ informa cuántos enlaces omitió y `validar` los lista. Sin `sitio`, `build` y `
 más frecuente en los `enlace` de los nodos y lo avisan; si no hay URL absolutas, solo quedan las rutas
 relativas.
 
+### Documento local (`sitio: localhost`)
+
+Para un documento sin sitio web propio (un manual, una norma, un informe), escribe `sitio: localhost`
+(o `127.0.0.1`). `build` arma el índice como siempre y escribe además `index.html` junto a él:
+
+- cada nodo aprobado es una sección (`<section id="id-del-nodo">`) con su título, la respuesta corta y
+  el cuerpo del nodo en Markdown (títulos, listas, tablas, citas, código e imágenes), más un índice al
+  comienzo; el nodo de saludo no lleva sección;
+- el chat va dentro: "Ver más" lleva a la sección del nodo y los enlaces de las respuestas cuya ruta
+  es el `enlace` de otro nodo (`/plazos`, `/plazos.html`, `http://localhost:3000/plazos`) pasan a ser
+  `#plazos`. Un nodo sin `enlace` pero con cuerpo también recibe "Ver más" hacia su sección;
+- el índice y el script van incrustados, así que el archivo funciona abierto directamente, sin servidor.
+
+`build` solo reemplaza un `index.html` que él mismo generó; si en la carpeta de salida hay otro, falla
+sin escribir nada y pide otra `--salida`.
+
 ### Enlaces entre nodos
 
 Una respuesta puede abrir otro nodo en el mismo chat: `[Hotel Casona Distante](nodo:casona-distante)`.
@@ -291,7 +307,7 @@ El detalle de cada campo, del diccionario, del ámbito y del set de preguntas es
 | `iniciar <carpeta> --nombre "…" --sitio <dominio>` | crea la carpeta de contenido con plantillas; no sobrescribe |
 | `skill [carpeta]` | copia la guía a `<carpeta>/.claude/skills/pregunta-al-sitio-contenido` |
 | `validar <carpeta>` | revisa los nodos: estructura y reglas de estilo de `sitio.yaml > validar`; sale con 1 si hay errores |
-| `build <carpeta> -o <ruta> [--widget]` | arma `indice.json` con los nodos aprobados e informa los enlaces omitidos; `--widget` copia `pregunta-al-sitio.js` al lado (en el repo lo empaqueta antes; instalado, falla si `dist/` está viejo) |
+| `build <carpeta> -o <ruta> [--widget]` | arma `indice.json` con los nodos aprobados e informa los enlaces omitidos; `--widget` copia `pregunta-al-sitio.js` al lado (en el repo lo empaqueta antes; instalado, falla si `dist/` está viejo). Con `sitio: localhost` escribe además `index.html`, el documento navegable con el chat dentro |
 | `evaluar <carpeta>` | revisa `preguntas.yaml` y mide el chat: métricas con intervalo de confianza (Wilson 95 %), por familia (oferta y contenido) si hay `config.tipos`, y errores de ajuste y de validación |
 | `calibrar <carpeta> --escribir [--max-falso-rechazo 5%]` | elige parámetros y umbrales del buscador y los guarda en `sitio.yaml` (conserva `tipos` y `opcionesMedia`); muestra el compromiso entre falso rechazo y fuga por umbral y cuántos títulos y keywords sueltos terminan en contacto |
 | `cobertura <carpeta> --fuentes <fuentes> [--normalizar]` | lista las fuentes con línea `URL:` sin un nodo cuyo `enlace` sea esa URL; sale con 1 si hay. `--normalizar` ignora `.html` e `index.html` |

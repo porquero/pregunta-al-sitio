@@ -20,6 +20,7 @@ import { widgetAlDia } from './empaquetar.mjs';
 import { cobertura } from './cobertura.mjs';
 import { vocabulario, leerFuentes } from './vocabulario.mjs';
 import { leerSitio } from './contenido/leer.mjs';
+import { paginaLocal, MARCA } from './documento.mjs';
 
 const AYUDA = `Uso: pregunta-al-sitio <comando> [carpeta] [opciones]
 
@@ -33,6 +34,8 @@ Comandos:
               -o, --salida <ruta>   destino (por defecto <carpeta>/indice.json)
               --borradores          incluye los nodos en borrador
               --widget              copia pregunta-al-sitio.js junto al índice
+              Con sitio: localhost escribe además index.html junto al índice: todos los nodos como
+              secciones y el chat dentro; los enlaces del chat llevan a cada sección (sirve para documentos).
   validar   revisa los nodos; sale con código 1 si hay errores
               --silencioso          no muestra los avisos
   evaluar   revisa preguntas.yaml y mide el resolvedor con él
@@ -147,8 +150,14 @@ ${total} palabras frecuentes · ${total - sinResultado.length} con resultado · 
 
   build(dir, v) {
     // El widget se comprueba antes de escribir nada: si está viejo, build falla sin dejar medio trabajo.
-    const widget = v.widget ? widgetAlDia() : null;
-    const { indice, errores, avisos, omitidos, dominios } = construirIndice(dir, { borradores: v.borradores });
+    const { indice, errores, avisos, omitidos, dominios, documento } = construirIndice(dir, { borradores: v.borradores });
+    // El documento local (sitio: localhost) lleva el widget dentro, así que también lo necesita.
+    const widget = v.widget || documento ? widgetAlDia() : null;
+    const html = documento ? join(dirname(resolve(v.salida ?? join(dir, 'indice.json'))), 'index.html') : null;
+    if (html && existsSync(html) && !readFileSync(html, 'utf8').includes(MARCA)) {
+      console.error(`ERROR  ${html} existe y no lo generó pregunta-al-sitio: no se reemplaza. Usa otra --salida.`);
+      return 1;
+    }
     for (const e of errores) console.error(`ERROR  ${e}`);
     for (const a of avisos) console.log(`aviso  ${a}`);
     const salida = v.salida ?? join(dir, 'indice.json');
@@ -158,10 +167,15 @@ ${total} palabras frecuentes · ${total - sinResultado.length} con resultado · 
     if (omitidos) {
       console.log(`${omitidos} enlace(s) omitido(s) por estar fuera de ${dominios.join(', ') || 'las rutas del sitio (falta sitio)'} · detalle: pregunta-al-sitio validar`);
     }
-    if (widget) {
+    if (widget && v.widget) {
       const destino = join(dirname(resolve(salida)), 'pregunta-al-sitio.js');
       copyFileSync(widget.ruta, destino);
       console.log(`widget ${widget.empaquetado ? 'empaquetado y ' : ''}copiado en ${destino}`);
+    }
+    if (documento) {
+      const pagina = paginaLocal({ indice, nodos: documento.secciones, sitio: leerSitio(dir), widget: readFileSync(widget.ruta, 'utf8'), url: documento.url });
+      writeFileSync(html, pagina);
+      console.log(`documento local (sitio: localhost): ${documento.secciones.length} secciones · ${html}`);
     }
     return errores.length ? 1 : 0;
   },

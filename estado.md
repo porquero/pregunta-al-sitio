@@ -36,7 +36,19 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
   escribe `calibrar` y las que escribe uno: `opcionesMedia`, `tipos`, `empate`). Commit `cf691e8`.
 - CLI: comando `vocabulario` (hecho en otro chat, en la copia `pregunta-al-sitio-cli`): cuenta las palabras
   de las fuentes y lista las frecuentes que, consultadas solas, terminan en contacto (zona baja); sale con 1
-  si hay. `--min` (5), `--largo` (5), `sitio.yaml > vocabulario.ignorar`. README y SKILL.md documentados. Commit `df63224`.
+  si hay. `--min` (5), `--largo` (5), `sitio.yaml > vocabulario.ignorar`. README y SKILL.md documentados.
+
+## Último trabajo (2026-11-22)
+
+- Documento local: con `sitio: localhost` (o `127.0.0.1`), `build` escribe además `index.html` junto al
+  índice (`cli/documento.mjs`). Cada nodo aprobado salvo el saludo es una `<section id>` con título,
+  respuesta corta y cuerpo Markdown de bloque (títulos bajan dos niveles, listas, tablas, citas, código,
+  imágenes). "Ver más" y los enlaces cuya ruta es el `enlace` de un nodo pasan a `#id` (también
+  `.html` y `http://localhost:puerto/...`); un nodo con cuerpo y sin enlace recibe `#id`. Índice JSON y
+  widget incrustados (`data:` URL en `PreguntaAlSitioConfig`): funciona abierto sin servidor. No pisa un
+  `index.html` ajeno (marca `generator`). `dominiosDe` acepta `localhost`. Probado en el navegador:
+  pregunta → respuesta → "Ver más" lleva a `#reservas`; sin errores de consola. Sin commit aún.
+  - Pendiente: en móvil el chat ocupa la pantalla; tras "Ver más" a un ancla no se cierra solo. Commit `df63224`.
 
 ## Último trabajo (2026-11-19)
 
