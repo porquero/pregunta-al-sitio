@@ -51,7 +51,7 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 - Widget: con el panel a pantalla completa (`PANTALLA_COMPLETA`, ≤ 480 px, compartida con el CSS), un
   clic en un enlace a un `#fragmento` de la misma página ("Ver más" del documento local) cierra el chat sin
   devolver el foco al botón, y el navegador va a la sección. En escritorio el chat sigue abierto.
-  `esAnclaDeLaPagina` en `acciones.js`. Probado en el navegador a 375 px y en escritorio. Sin commit aún.
+  `esAnclaDeLaPagina` en `acciones.js`. Probado en el navegador a 375 px y en escritorio. Commit `b22d200`.
 
 ## Último trabajo (2026-11-19)
 
