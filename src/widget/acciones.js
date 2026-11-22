@@ -4,6 +4,22 @@
 //   button[data-equipo]               escribe al equipo
 export const SELECTOR_ACCION = 'button[data-nodo], a[data-nodo], button[data-q], button[data-equipo]';
 
+/**
+ * ¿El enlace lleva a una sección de la misma página (mismo documento, con #fragmento)? Así son "Ver más"
+ * y los enlaces del documento local (sitio: localhost). `href` es el href resuelto del <a>.
+ */
+export function esAnclaDeLaPagina(href, ubicacion) {
+  let u;
+  let aqui;
+  try {
+    u = new URL(href, ubicacion);
+    aqui = new URL(ubicacion);
+  } catch {
+    return false;
+  }
+  return u.hash.length > 1 && u.origin === aqui.origin && u.pathname === aqui.pathname && u.search === aqui.search;
+}
+
 /** Elemento clicado → { tipo: 'nodo' | 'consulta' | 'equipo', valor, etiqueta, enlace } o null. */
 export function accionDeClic(objetivo) {
   const el = objetivo?.closest?.(SELECTOR_ACCION);

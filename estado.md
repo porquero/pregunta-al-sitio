@@ -36,7 +36,7 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
   escribe `calibrar` y las que escribe uno: `opcionesMedia`, `tipos`, `empate`). Commit `cf691e8`.
 - CLI: comando `vocabulario` (hecho en otro chat, en la copia `pregunta-al-sitio-cli`): cuenta las palabras
   de las fuentes y lista las frecuentes que, consultadas solas, terminan en contacto (zona baja); sale con 1
-  si hay. `--min` (5), `--largo` (5), `sitio.yaml > vocabulario.ignorar`. README y SKILL.md documentados.
+  si hay. `--min` (5), `--largo` (5), `sitio.yaml > vocabulario.ignorar`. README y SKILL.md documentados. Commit `df63224`.
 
 ## Último trabajo (2026-11-22)
 
@@ -48,7 +48,10 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
   widget incrustados (`data:` URL en `PreguntaAlSitioConfig`): funciona abierto sin servidor. No pisa un
   `index.html` ajeno (marca `generator`). `dominiosDe` acepta `localhost`. Probado en el navegador:
   pregunta → respuesta → "Ver más" lleva a `#reservas`; sin errores de consola. Commit `c48c801`.
-  - Pendiente: en móvil el chat ocupa la pantalla; tras "Ver más" a un ancla no se cierra solo. Commit `df63224`.
+- Widget: con el panel a pantalla completa (`PANTALLA_COMPLETA`, ≤ 480 px, compartida con el CSS), un
+  clic en un enlace a un `#fragmento` de la misma página ("Ver más" del documento local) cierra el chat sin
+  devolver el foco al botón, y el navegador va a la sección. En escritorio el chat sigue abierto.
+  `esAnclaDeLaPagina` en `acciones.js`. Probado en el navegador a 375 px y en escritorio. Sin commit aún.
 
 ## Último trabajo (2026-11-19)
 

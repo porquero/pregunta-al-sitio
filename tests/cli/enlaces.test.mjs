@@ -11,7 +11,7 @@ import { construirIndice } from '../../cli/build.mjs';
 import { validarNodos } from '../../cli/validar.mjs';
 import { evaluar } from '../../cli/evaluacion/evaluar.mjs';
 import { FIXTURE_PLAYA, cargarPreguntas } from '../../cli/evaluacion/datos.mjs';
-import { accionDeClic } from '../../src/widget/acciones.js';
+import { accionDeClic, esAnclaDeLaPagina } from '../../src/widget/acciones.js';
 import { iniciarSitio } from '../../cli/iniciar.mjs';
 
 const NODO = (id, etiqueta) => `<a href="#" role="button" data-nodo="${id}">${etiqueta}</a>`;
@@ -178,6 +178,18 @@ test('widget: clic en a[data-nodo] abre el nodo y cancela la navegación', () =>
   assert.deepEqual(accionDeClic(elemento('BUTTON', { nodo: 'casona' }, 'Casona')), { tipo: 'nodo', valor: 'casona', etiqueta: 'Casona', enlace: false });
   assert.deepEqual(accionDeClic(elemento('BUTTON', { q: '¿Precio?' }, '¿Precio?')).tipo, 'consulta');
   assert.equal(accionDeClic({ closest: () => null }), null);
+});
+
+test('esAnclaDeLaPagina: solo un #fragmento del mismo documento (el chat a pantalla completa se cierra)', () => {
+  const aqui = 'http://localhost:5178/doc/index.html?v=1';
+  assert.ok(esAnclaDeLaPagina('#reservas', aqui));
+  assert.ok(esAnclaDeLaPagina('http://localhost:5178/doc/index.html?v=1#reservas', aqui));
+  assert.ok(esAnclaDeLaPagina('#reservas', 'file:///C:/doc/index.html'));
+  assert.ok(!esAnclaDeLaPagina('#', aqui), 'sin fragmento');
+  assert.ok(!esAnclaDeLaPagina('/otra#reservas', aqui), 'otra página');
+  assert.ok(!esAnclaDeLaPagina('https://otro.cl/doc/index.html?v=1#a', aqui), 'otro origen');
+  assert.ok(!esAnclaDeLaPagina('/doc/index.html#a', aqui), 'otra búsqueda');
+  assert.ok(!esAnclaDeLaPagina('#a', 'no es url'));
 });
 
 test('validar avisa los enlaces fuera del sitio', () => {

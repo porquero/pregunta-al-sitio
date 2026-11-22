@@ -2,6 +2,9 @@
 // El sitio puede cambiar colores y fuente con variables CSS sobre el elemento:
 //   pregunta-al-sitio { --pas-acento: #0a7; --pas-fuente: "Inter", sans-serif; }
 
+/** Ancho bajo el cual el panel ocupa toda la pantalla. */
+export const PANTALLA_COMPLETA = '(max-width: 480px)';
+
 export const ESTILOS = `
 :host {
   --pas-acento: #2350c4;
@@ -56,7 +59,7 @@ button, input, textarea { font: inherit; color: inherit; }
   overflow: hidden; font-size: 15px; line-height: 1.5;
 }
 :host([posicion="izquierda"]) .panel { right: auto; left: 20px; }
-@media (max-width: 480px) {
+@media ${PANTALLA_COMPLETA} {
   .panel { inset: 0; width: 100%; height: 100%; border-radius: 0; border: 0; }
   :host([abierto]) .lanzador { display: none; }
 }

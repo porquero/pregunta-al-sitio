@@ -267,7 +267,9 @@ Para un documento sin sitio web propio (un manual, una norma, un informe), escri
   comienzo; el nodo de saludo no lleva sección;
 - el chat va dentro: "Ver más" lleva a la sección del nodo y los enlaces de las respuestas cuya ruta
   es el `enlace` de otro nodo (`/plazos`, `/plazos.html`, `http://localhost:3000/plazos`) pasan a ser
-  `#plazos`. Un nodo sin `enlace` pero con cuerpo también recibe "Ver más" hacia su sección;
+  `#plazos`. Un nodo sin `enlace` pero con cuerpo también recibe "Ver más" hacia su sección. En el
+  celular, donde el chat ocupa toda la pantalla, seguir uno de esos enlaces cierra el chat para mostrar
+  la sección;
 - el índice y el script van incrustados, así que el archivo funciona abierto directamente, sin servidor.
 
 `build` solo reemplaza un `index.html` que él mismo generó; si en la carpeta de salida hay otro, falla

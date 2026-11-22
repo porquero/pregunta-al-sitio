@@ -10,8 +10,8 @@ import { crearSesion, filtrarEventos, rutaVisitada } from '../motor/sesion.js';
 import { crearDialogo } from '../motor/dialogo.js';
 import { crearRender } from './render.js';
 import { normalizarOpciones, opcionesDeAtributos, avisoContacto } from './opciones.js';
-import { ESTILOS } from './estilos.js';
-import { accionDeClic } from './acciones.js';
+import { ESTILOS, PANTALLA_COMPLETA } from './estilos.js';
+import { accionDeClic, esAnclaDeLaPagina } from './acciones.js';
 
 const ICONOS = {
   chat: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>',
@@ -121,7 +121,15 @@ export class PreguntaAlSitioElemento extends HTMLElement {
     });
     p.log.addEventListener('click', (e) => {
       const a = accionDeClic(e.target);
-      if (!a) return;
+      if (!a) {
+        // Un enlace a una sección de esta misma página ("Ver más" en el documento local): con el panel a
+        // pantalla completa, el chat taparía la sección, así que se cierra y el navegador va al ancla.
+        const ancla = e.target.closest?.('a[href]');
+        if (ancla && esAnclaDeLaPagina(ancla.href, location.href) && matchMedia(PANTALLA_COMPLETA).matches) {
+          this.cerrar({ enfocar: false });
+        }
+        return;
+      }
       if (a.enlace) e.preventDefault();
       if (a.tipo === 'nodo') this.#dialogo.abrirNodo(a.valor, a.etiqueta);
       else if (a.tipo === 'consulta') this.preguntar(a.valor);
@@ -215,12 +223,13 @@ export class PreguntaAlSitioElemento extends HTMLElement {
     return this.#iniciar();
   }
 
-  cerrar() {
+  /** Cierra el panel. `enfocar: false` no devuelve el foco al botón (al seguir un ancla, el foco va a la sección). */
+  cerrar({ enfocar = true } = {}) {
     const p = this.#partes;
     this.removeAttribute('abierto');
     p.panel.hidden = true;
     p.lanzador.setAttribute('aria-expanded', 'false');
-    p.lanzador.focus();
+    if (enfocar) p.lanzador.focus();
   }
 
   async preguntar(texto) {
