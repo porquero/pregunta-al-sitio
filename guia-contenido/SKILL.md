@@ -57,7 +57,9 @@ avances sin su respuesta.
    hay ninguna, pregunta de dónde sacarlas antes de seguir. Si la fuente es un documento sin sitio web
    (manual, norma, informe), escribe `sitio: localhost`: `build` genera además `index.html` con cada nodo
    como sección, menú con buscador y el chat dentro. Entonces el cuerpo del nodo es el texto de la
-   sección (Markdown), `fuente` se muestra al pie de cada sección y `enlace: /documento#id` hace que los
+   sección (Markdown), `fuente` se muestra al pie de cada sección, `texto_original` guarda el texto de la
+   fuente del que sacaste `respuesta_corta` (cópialo sin resumir ni corregir; la página lo muestra plegado
+   para contrastar) y `enlace: /documento#id` hace que los
    enlaces entre secciones lleven a ella. Ajusta cabecera, nombres de grupo (por `tipo`) y pie en
    `sitio.yaml > documento` (detalle en el README, "Documento local"); no escribas el HTML a mano.
 3. Si no existe la carpeta, créala con `iniciar`.

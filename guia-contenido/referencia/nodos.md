@@ -62,6 +62,7 @@ estado: borrador
 | `derivacion` | en contacto | texto que precede al contacto cuando la consulta no tiene respuesta |
 | `estado` | sí | `borrador` o `aprobado`; `build` publica solo los aprobados |
 | `fuente` | recomendado | archivo y sección de donde sale el texto |
+| `texto_original` | en documentos | el texto de la fuente del que sale `respuesta_corta`, copiado sin resumir (Markdown, con `\|` en YAML). El chat no lo usa ni lo busca; el documento local (`sitio: localhost`) lo muestra plegado bajo "Texto original" para contrastar la respuesta con la fuente |
 | `schema` | recomendado | `{ tipo, propiedades }` de schema.org que cubre el nodo (`{ tipo: Hotel, propiedades: [checkinTime, checkoutTime] }`). El chat no lo usa; sirve para revisar la cobertura del rubro. Ver [rubros.md](rubros.md) |
 
 ## Tarjeta: claves admitidas

@@ -5,14 +5,15 @@
 // abierto directamente (file://): el índice y el script van incrustados.
 //
 // Diseño: cabecera, menú lateral fijo con buscador (en el celular, un botón lo despliega), secciones
-// agrupadas por tipo de nodo y, en cada una, antetítulo, título, respuesta corta, el cuerpo (plegado si es
-// largo) y la fuente. Se configura en sitio.yaml > documento:
+// agrupadas por tipo de nodo y, en cada una, antetítulo, título, respuesta corta, el cuerpo, el
+// `texto_original` del nodo (el texto de la fuente del que sale la respuesta, plegado bajo un botón) y la
+// fuente. Sin texto_original, un cuerpo largo es el que se pliega. Se configura en sitio.yaml > documento:
 //   antetitulo   línea sobre el título (por defecto, ninguna)
 //   titulo       título de la página (por defecto, nombre)
 //   descripcion  párrafo bajo el título
 //   grupos       { tipo: "Nombre del grupo" }: nombre y orden de los grupos; los tipos que falten van
 //                después, con el tipo como nombre
-//   detalle      texto del botón que despliega un cuerpo largo (por defecto "Texto completo")
+//   detalle      texto del botón que despliega lo plegado (por defecto "Texto original")
 //   pie          texto del pie de página (por defecto, nombre)
 import { dominiosDe, enLinea, escapar, urlSegura, ENLACE_MD, plegar } from './contenido/html.mjs';
 
@@ -337,14 +338,16 @@ export function paginaLocal({ indice, nodos, sitio = {}, widget, url = urlSegura
     )
     .join('\n');
 
+  const bloque = (md) => `<div class="cuerpo">${bloquesHtml(nodoAAncla(md, ids), opciones)}</div>`;
   const seccion = (n, g, i) => {
     const id = escapar(n.id);
     const partes = [`<p class="ceja">${escapar(g.titulo)} · ${dos(i + 1)}</p>`, `<h3 id="t-${id}">${escapar(n.titulo)}</h3>`];
     partes.push(`<p class="resumen">${linea(nodoAAncla(n.respuestaCorta, ids), opciones)}</p>`);
-    if (n.cuerpo) {
-      const cuerpo = `<div class="cuerpo">${bloquesHtml(nodoAAncla(n.cuerpo, ids), opciones)}</div>`;
-      partes.push(palabras(n.cuerpo) > PLEGAR_DESDE ? `<details><summary>${escapar(doc.detalle ?? 'Texto completo')}</summary>${cuerpo}</details>` : cuerpo);
-    }
+    const plegado = (md) => `<details><summary>${escapar(doc.detalle ?? 'Texto original')}</summary>${bloque(md)}</details>`;
+    // Con texto_original, el cuerpo queda a la vista y el texto de la fuente se pliega bajo el botón.
+    // Sin él, se pliega el cuerpo si es largo.
+    if (n.cuerpo) partes.push(!n.textoOriginal && palabras(n.cuerpo) > PLEGAR_DESDE ? plegado(n.cuerpo) : bloque(n.cuerpo));
+    if (n.textoOriginal) partes.push(plegado(n.textoOriginal));
     if (n.fuente) partes.push(`<p class="fuente">Fuente: ${escapar(n.fuente)}</p>`);
     return `<section class="seccion" id="${id}" aria-labelledby="t-${id}">${partes.join('\n')}</section>`;
   };

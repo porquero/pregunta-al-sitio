@@ -265,8 +265,11 @@ Para un documento sin sitio web propio (un manual, una norma, un informe), escri
 - la página tiene cabecera, un menú lateral fijo con buscador (por título y keywords; en el celular, un
   botón lo despliega) que marca la sección a la vista, y las secciones agrupadas por `tipo` de nodo;
 - cada nodo aprobado es una tarjeta (`<section id="id-del-nodo">`) con antetítulo (grupo y número),
-  título, la respuesta corta, el cuerpo en Markdown (títulos, listas, tablas, citas, código e imágenes;
-  plegado bajo un botón si pasa de 120 palabras) y la `fuente` del nodo. El saludo no lleva sección;
+  título, la respuesta corta, el cuerpo en Markdown (títulos, listas, tablas, citas, código e imágenes),
+  el `texto_original` plegado bajo el botón "Texto original" y la `fuente` del nodo. `texto_original` es
+  el texto de la fuente del que sale la respuesta, sin resumir: así la página no repite el chat y
+  permite contrastar la respuesta con el documento. Sin `texto_original`, un cuerpo de más de 120
+  palabras es el que se pliega. El saludo no lleva sección;
 - el chat va dentro: "Ver más" lleva a la sección del nodo y los enlaces de las respuestas que apuntan
   al `enlace` de otro nodo pasan a ser `#id`. Se reconoce la ruta con su fragmento, así que varios nodos
   pueden estar en la misma página (`/rca#cierre`, `/rca#fauna`), y también sin `.html` o con host
@@ -286,7 +289,7 @@ documento:
   grupos:                       # nombre y orden de los grupos por tipo; los demás tipos van después
     proyecto: El proyecto
     impacto: Impactos evaluados
-  detalle: Texto de la resolución   # botón del cuerpo plegado (por defecto "Texto completo")
+  detalle: Texto de la resolución   # botón de lo plegado (por defecto "Texto original")
   pie: Texto basado en la resolución original.   # por defecto, nombre
 ```
 

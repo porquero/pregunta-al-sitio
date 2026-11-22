@@ -59,7 +59,11 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
   llegar por ancla), `fuente` al pie, impresión. `sitio.yaml > documento`: antetitulo, titulo,
   descripcion, grupos, detalle, pie. `leer.mjs` lee `fuente`. Anclas con fragmento: `/rca#cierre` va a
   su nodo aunque todos compartan `/rca` (antes todos iban al primero). Probado con una copia del
-  contenido del Visor (46 secciones, 0 enlaces rotos), escritorio y 375 px. Commit `cae1eb5`. Commit `b22d200`.
+  contenido del Visor (46 secciones, 0 enlaces rotos), escritorio y 375 px. Commit `cae1eb5`.
+- Campo de nodo `texto_original`: el texto de la fuente del que sale `respuesta_corta`, sin resumir. No
+  entra al índice ni a la búsqueda; el documento local lo muestra plegado bajo "Texto original"
+  (`documento.detalle` lo renombra) y deja el cuerpo a la vista. Sin él, sigue plegándose el cuerpo
+  largo. Guía (`nodos.md`, SKILL.md) y README. Sin commit aún. Commit `b22d200`.
 
 ## Último trabajo (2026-11-19)
 

@@ -145,3 +145,22 @@ test('sitio.yaml > documento: cabecera, grupos, pie; cuerpo largo plegado y fuen
   assert.match(html, /<footer>Basado en la resolución original\.<\/footer>/);
   assert.doesNotMatch(html.split('id="alcance"')[1].split('</section>')[0], /<details>/, 'cuerpo corto: a la vista');
 });
+
+test('texto_original: plegado bajo "Texto original", el cuerpo queda a la vista y no entra al índice', () => {
+  const dir = documento();
+  const largo = Array(PLEGAR_DESDE + 5).fill('palabra').join(' ');
+  writeFileSync(
+    join(dir, 'nodos', 'c-plazos.md'),
+    nodo('plazos', 'seccion', 'fuente: "RCA, Considerando 4"\ntexto_original: |\n  4.1 Que el plazo <de> revisión es de **10 días**.\n\n  4.2 Segundo párrafo.\n', largo),
+  );
+  const r = correr('build', dir);
+  assert.equal(r.status, 0, r.stderr);
+  const seccion = readFileSync(join(dir, 'index.html'), 'utf8').split('id="plazos"')[1].split('</section>')[0];
+  assert.match(seccion, /<p class="resumen">.*<\/p>\n<div class="cuerpo"><p>palabra/, 'cuerpo largo a la vista');
+  assert.match(
+    seccion,
+    /<details><summary>Texto original<\/summary><div class="cuerpo"><p>4\.1 Que el plazo &lt;de&gt; revisión es de <strong>10 días<\/strong>\.<\/p>\n<p>4\.2 Segundo párrafo\.<\/p><\/div><\/details>\n<p class="fuente">/,
+  );
+  assert.equal((seccion.match(/<details>/g) ?? []).length, 1);
+  assert.doesNotMatch(readFileSync(join(dir, 'indice.json'), 'utf8'), /Segundo párrafo/);
+});

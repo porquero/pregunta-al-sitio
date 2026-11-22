@@ -67,6 +67,8 @@ export function parsearNodo(contenido, archivo = 'nodo.md') {
     estado: String(d.estado ?? 'borrador'),
     derivacion: texto(d.derivacion),
     fuente: texto(d.fuente),
+    // Texto de la fuente del que sale respuesta_corta, sin resumir. Solo lo muestra el documento local.
+    textoOriginal: texto(d.texto_original),
     cuerpo: m[2].trim(),
     archivo: basename(archivo),
   };
