@@ -21,6 +21,7 @@
     "cli",
     "dist",
     "guia-contenido",
+    "servidor",
     "README.md",
     "LICENSE"
   ],

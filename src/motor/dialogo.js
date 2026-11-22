@@ -100,7 +100,12 @@ export function crearDialogo({ obtenerResolver, render, sesion, registrarSinResp
   };
 
   return {
-    preguntar(texto) {
+    /**
+     * Consulta un texto. `alResponder(evento, resultado)`, si se da, recibe lo que el chat decidió mostrar
+     * antes de mostrarlo (el widget lo usa para las métricas de las consultas escritas); un error ahí no
+     * interrumpe la respuesta.
+     */
+    preguntar(texto, { alResponder = null } = {}) {
       const limpio = String(texto ?? '').replace(/\s+/g, ' ').trim().slice(0, LARGO_MAXIMO);
       if (!limpio) return cola;
       return encolar(async () => {
@@ -108,7 +113,13 @@ export function crearDialogo({ obtenerResolver, render, sesion, registrarSinResp
         const { resolver } = await obtenerResolver();
         const resultado = resolver(limpio);
         if (debeRegistrarse(resultado)) registrarSinRespuesta(resultado.terminos);
-        await registrar(decidir(resultado, limpio));
+        const evento = decidir(resultado, limpio);
+        try {
+          alResponder?.(evento, resultado);
+        } catch (error) {
+          console.error('Chat:', error);
+        }
+        await registrar(evento);
       });
     },
 

@@ -12,6 +12,7 @@ import { crearRender } from './render.js';
 import { normalizarOpciones, opcionesDeAtributos, avisoContacto } from './opciones.js';
 import { ESTILOS, PANTALLA_COMPLETA } from './estilos.js';
 import { accionDeClic, esAnclaDeLaPagina } from './acciones.js';
+import { datosConsulta, fraseRespuesta, enviarMetricas } from './metricas.js';
 
 const ICONOS = {
   chat: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>',
@@ -117,7 +118,7 @@ export class PreguntaAlSitioElemento extends HTMLElement {
       const texto = p.campo.value;
       if (!texto.trim()) return p.campo.focus();
       p.campo.value = '';
-      this.preguntar(texto);
+      this.#consultaEscrita(texto);
     });
     p.log.addEventListener('click', (e) => {
       const a = accionDeClic(e.target);
@@ -232,11 +233,30 @@ export class PreguntaAlSitioElemento extends HTMLElement {
     if (enfocar) p.lanzador.focus();
   }
 
-  async preguntar(texto) {
+  async preguntar(texto, { alResponder = null } = {}) {
     if (!this.abierto) await this.abrir();
     else await this.#iniciar();
     this.#ultimaConsulta = String(texto ?? '').trim();
-    return this.#dialogo.preguntar(texto);
+    return this.#dialogo.preguntar(texto, { alResponder });
+  }
+
+  /**
+   * Consulta escrita en el cuadro de texto: además de responderla, dispara `pas:consulta` con
+   * { texto, url, respuesta } y, con la opción `metricas`, la envía a esa URL. Nunca retrasa la respuesta.
+   */
+  #consultaEscrita(texto) {
+    const datos = datosConsulta(texto, location);
+    return this.preguntar(texto, {
+      alResponder: (evento, resultado) => {
+        this.#cargar()
+          .then((indice) => {
+            const detalle = { ...datos, respuesta: fraseRespuesta(evento, resultado, new Map(indice.nodos.map((n) => [n.id, n]))) };
+            this.dispatchEvent(new CustomEvent('pas:consulta', { detail: detalle, bubbles: true, composed: true }));
+            if (this.#opciones.metricas) enviarMetricas(this.#opciones.metricas, detalle);
+          })
+          .catch(() => {});
+      },
+    });
   }
 
   async borrar() {

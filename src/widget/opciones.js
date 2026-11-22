@@ -11,6 +11,8 @@
 //   contacto        { enlace } plantilla de URL con {mensaje} (mailto:, https://wa.me/…), o
 //                   { webhook, formato: 'json' | 'form', consentimiento, privacidad } formulario que envía a esa URL
 //   sinRespuesta    URL que recibe por POST { tokens } de las consultas sin respuesta
+//   metricas        URL que recibe por POST { texto, url, respuesta } de cada consulta ESCRITA (no de los
+//                   chips ni de las sugerencias); ver metricas.js
 //   textos          reemplaza cualquier texto de TEXTOS
 
 import { RETARDO_MS, CLAVE_SESION } from '../motor/config.js';
@@ -66,6 +68,7 @@ export function opcionesDeAtributos(dataset = {}) {
   if (dataset.retardo !== undefined) o.retardo = Number(dataset.retardo);
   if (dataset.clave) o.clave = dataset.clave;
   if (dataset.sinRespuesta) o.sinRespuesta = dataset.sinRespuesta;
+  if (dataset.metricas) o.metricas = dataset.metricas;
   if (dataset.contactoEnlace) o.contacto = { enlace: dataset.contactoEnlace };
   if (dataset.contactoWebhook) {
     o.contacto = {
@@ -104,6 +107,7 @@ export function normalizarOpciones(entrada = {}) {
     retardo: Number.isFinite(entrada.retardo) && entrada.retardo >= 0 ? entrada.retardo : RETARDO_MS,
     clave: entrada.clave ?? CLAVE_SESION,
     sinRespuesta: entrada.sinRespuesta ?? null,
+    metricas: entrada.metricas ?? null,
     contacto,
     textos,
   };

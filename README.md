@@ -116,7 +116,52 @@ Opciones como atributos `data-*` del script, o en `window.PreguntaAlSitioConfig`
 | `contacto.consentimiento` | `data-contacto-consentimiento` | casilla obligatoria con ese texto (`true` usa uno por defecto) |
 | `contacto.privacidad` | `data-contacto-privacidad` | enlace a la política de privacidad |
 | `sinRespuesta` | `data-sin-respuesta` | URL que recibe `{ tokens }` de las consultas sin respuesta |
+| `metricas` | `data-metricas` | URL que recibe `{ texto, url, respuesta }` de cada consulta escrita (ver abajo) |
 | `textos` | — | reemplaza cualquier texto de la interfaz (ver `src/widget/opciones.js`) |
+
+#### Métricas de consultas (`metricas`)
+
+Con `data-metricas="https://misitio.cl/pas/registrar-consultas.php"`, el widget envía por POST un JSON por
+cada consulta que el visitante **escribe** en el cuadro de texto. Los clics en chips, en las opciones de
+"¿Te refieres a…?", en las preguntas sugeridas y en los disparadores `data-pregunta-al-sitio` no se envían.
+
+```json
+{ "texto": "¿Tienen hosting con respaldo?", "url": "https://misitio.cl/hosting", "respuesta": "Seguridad, respaldo y soporte del hosting" }
+```
+
+- `texto`: lo escrito, tal cual, recortado a 300 caracteres.
+- `url`: `location.origin + location.pathname`, sin parámetros ni `#`.
+- `respuesta`: una frase de lo que respondió el chat, hasta 150 caracteres: el título del nodo mostrado,
+  `Opciones: A | B`, `Conocimiento general: A`, `Derivada a contacto` (tema que el sitio deriva a
+  propósito) o `Sin respuesta`. Se envía haya respuesta o no; filtrar `Sin respuesta` da el contenido que falta.
+
+No se envía nada más: ni identificador de sesión, ni cookies, ni agente de usuario, ni el texto completo de
+la respuesta. El envío usa `navigator.sendBeacon` con un Blob `application/json` y, si no existe o lo
+rechaza, `fetch` con `keepalive` y `credentials: 'omit'`. Los errores se ignoran y nunca retrasan la
+respuesta. `sendBeacon` no permite omitir credenciales: si la URL es del mismo sitio, el navegador adjunta
+sus cookies, que el servidor no debe guardar.
+
+> **Datos personales.** El texto libre puede traer nombres, correos, teléfonos o RUT que la persona
+> escribió en el chat. El widget no los filtra: el servidor debe limpiarlos antes de guardar (ocultar
+> correos, enlaces, RUT y números largos; recortar el texto) y no guardar IP ni cookies. Informa el
+> registro en la política de privacidad del sitio.
+
+El repositorio trae un recolector listo para hosting con PHP 8.1 o superior:
+[servidor/recolector/](servidor/recolector/README.md). Guarda un CSV `FECHA;URL;TEXTO;RESPUESTA` (se abre en
+Excel), oculta correos, enlaces, RUT y números largos, no guarda IP ni cookies, acepta solo los orígenes
+configurados y limita las consultas por hora. La guía incluye la instalación y un texto sugerido para la
+política de privacidad.
+
+Haya o no `metricas`, cada consulta escrita dispara en el elemento el evento DOM `pas:consulta` (sube hasta
+`document`) con el mismo `{ texto, url, respuesta }` en `detail`, para reenviarlo a otra herramienta de
+estadísticas:
+
+```js
+document.addEventListener('pas:consulta', (e) => miAnalitica('consulta_chat', e.detail));
+```
+
+`metricas` es independiente de `sinRespuesta`, que sigue enviando solo los tokens de las consultas sin
+respuesta.
 
 Cuando una consulta no tiene respuesta, el widget muestra el nodo `contacto` con el formulario plegado
 tras un botón "Escribir al equipo", la invitación a seguir preguntando y los temas de la bienvenida (chips
@@ -262,8 +307,12 @@ relativas.
 Para un documento sin sitio web propio (un manual, una norma, un informe), escribe `sitio: localhost`
 (o `127.0.0.1`). `build` arma el índice como siempre y escribe además `index.html` junto a él:
 
-- la página tiene cabecera, un menú lateral fijo con buscador (por título y keywords; en el celular, un
-  botón lo despliega) que marca la sección a la vista, y las secciones agrupadas por `tipo` de nodo;
+- la cabecera lleva el título, una bajada (`documento.descripcion`, o si falta `descripcion` o
+  `rubro.descripcion` de `sitio.yaml`), cuántas secciones y grupos hay, un botón "Hacer una pregunta"
+  que abre el chat y hasta cuatro preguntas de ejemplo que se envían al chat al hacer clic. Una sección
+  "Presentación" opcional abre el contenido;
+- la página tiene un menú lateral fijo con buscador (por título y keywords; en el celular, un botón lo
+  despliega) que marca la sección a la vista, y las secciones agrupadas por `tipo` de nodo;
 - cada nodo aprobado es una tarjeta (`<section id="id-del-nodo">`) con antetítulo (grupo y número),
   título, la respuesta corta, el cuerpo en Markdown (títulos, listas, tablas, citas, código e imágenes),
   el `texto_original` plegado bajo el botón "Texto original" y la `fuente` del nodo. `texto_original` es
@@ -285,7 +334,11 @@ Los textos de la página se ajustan en `sitio.yaml` (todo es opcional):
 documento:
   antetitulo: Resolución de Calificación Ambiental     # línea sobre el título
   titulo: Continuidad Operacional en Distrito Pleito   # por defecto, nombre
-  descripcion: Contenido de la resolución organizado por secciones.
+  descripcion: Contenido de la resolución organizado por secciones.   # bajada del título
+  presentacion: |               # Markdown de la sección "Presentación", al comienzo
+    Esta página reúne la resolución del proyecto, organizada por temas.
+  preguntas:                    # ejemplos bajo el título; por defecto, una pregunta por grupo; [] los quita
+    - ¿Qué pasa al terminar el proyecto?
   grupos:                       # nombre y orden de los grupos por tipo; los demás tipos van después
     proyecto: El proyecto
     impacto: Impactos evaluados

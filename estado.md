@@ -63,7 +63,28 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
 - Campo de nodo `texto_original`: el texto de la fuente del que sale `respuesta_corta`, sin resumir. No
   entra al índice ni a la búsqueda; el documento local lo muestra plegado bajo "Texto original"
   (`documento.detalle` lo renombra) y deja el cuerpo a la vista. Sin él, sigue plegándose el cuerpo
-  largo. Guía (`nodos.md`, SKILL.md) y README. Commit `ed1cc20`. Commit `b22d200`.
+  largo. Guía (`nodos.md`, SKILL.md) y README. Commit `ed1cc20`.
+- Cabecera del documento local: bajada (`documento.descripcion` → `descripcion` → `rubro.descripcion`,
+  también como `<meta name="description">`), cifras ("46 secciones en 6 grupos"), botón "Hacer una
+  pregunta" (`data-pregunta-al-sitio`, abre el chat) y hasta 4 preguntas de ejemplo que se envían al chat
+  (`documento.preguntas`; por defecto la primera pregunta de un nodo de cada grupo, sin contacto; `[]` las
+  quita). `documento.presentacion` (Markdown): sección "Presentación" al comienzo y en el menú. Probado con
+  la copia del Visor en escritorio y 375 px. Nota: el `rubro.descripcion` del Visor trae "Público:
+  comunidad y ciudadanos.", que es una nota interna; conviene escribir `documento.descripcion`. Sin commit aún.
+- Widget: opción `metricas` (`data-metricas`). Por cada consulta ESCRITA (submit del cuadro; no chips,
+  opciones, sugerencias ni disparadores) envía `{ texto (300, sin modificar), url (origin + pathname),
+  respuesta }`. `respuesta` (pedido del usuario, además del encargo original): título del nodo, "Opciones: A
+  | B", "Conocimiento general: A", "Derivada a contacto" o "Sin respuesta", hasta 150. sendBeacon con Blob
+  JSON; si falta o falla, fetch keepalive + `credentials: 'omit'`; errores silenciosos. Evento
+  `pas:consulta` siempre (bubbles + composed). `src/widget/metricas.js`; `dialogo.preguntar(texto,
+  { alResponder })`. `dev/index.html` envía a `/dev/webhook?metricas`. Probado en el navegador: 2 consultas
+  escritas → 2 POST; chip y disparador → nada.
+- Recolector PHP en el repo: `servidor/recolector/` (`registrar-consultas.php` + `README.md`, la guía de
+  instalación y privacidad), copiado de `Escritorio/tmp` (los originales siguen ahí). Guarda la 4.ª columna
+  RESPUESTA. El origen por defecto pasó del dominio del cliente a `misitio.cl` (sin datos de sitios en el
+  paquete). `servidor` va en `files` del paquete. `tests/servidor/recolector.test.mjs` lo prueba con
+  `php -S` (se omite sin PHP): columnas, limpieza, url sin query, fórmulas, 403/405/400, preflight.
+  Sin commit aún. Commit `b22d200`.
 
 ## Último trabajo (2026-11-19)
 

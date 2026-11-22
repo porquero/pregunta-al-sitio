@@ -158,3 +158,23 @@ test('chips: entre aristas de igual peso va primero el tipo de mayor prioridad',
   assert.deepEqual(chipsSeguimiento(origen, { vistos: ['otro'], porId, prioridad }).map((s) => s.nodo), ['srv', 'art']);
   assert.deepEqual(chipsSeguimiento(origen, { vistos: ['otro'], porId }).map((s) => s.nodo), ['art', 'srv'], 'sin prioridad manda el orden de las aristas');
 });
+
+test('alResponder recibe lo decidido antes de mostrarlo; abrir un nodo no lo llama y un error no corta la respuesta', async () => {
+  const { dialogo, dibujado } = armar();
+  const avisos = [];
+  await dialogo.preguntar('¿Tienen hosting con respaldo?', {
+    alResponder: (evento, resultado) => avisos.push({ evento, zona: resultado.zona, dibujados: dibujado.length }),
+  });
+  assert.deepEqual(avisos, [{ evento: { tipo: 'nodo', ref: 'hosting-seguridad-respaldo' }, zona: 'alta', dibujados: 1 }]);
+  await dialogo.abrirNodo('contacto', 'Contacto');
+  await dialogo.preguntar('¿Tienen hosting con respaldo?');
+  assert.equal(avisos.length, 1, 'sin alResponder (chips, sugerencias) no hay aviso');
+  const error = console.error;
+  console.error = () => {};
+  try {
+    await dialogo.preguntar('hosting', { alResponder: () => { throw new Error('x'); } });
+  } finally {
+    console.error = error;
+  }
+  assert.notEqual(dibujado.at(-1).tipo, 'usuario', 'la respuesta se muestra igual');
+});
