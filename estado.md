@@ -47,7 +47,7 @@ Repo: `C:\Users\criff\OneDrive\Documentos\Prgs\pregunta-al-sitio`, rama `main`. 
   `.html` y `http://localhost:puerto/...`); un nodo con cuerpo y sin enlace recibe `#id`. Índice JSON y
   widget incrustados (`data:` URL en `PreguntaAlSitioConfig`): funciona abierto sin servidor. No pisa un
   `index.html` ajeno (marca `generator`). `dominiosDe` acepta `localhost`. Probado en el navegador:
-  pregunta → respuesta → "Ver más" lleva a `#reservas`; sin errores de consola. Sin commit aún.
+  pregunta → respuesta → "Ver más" lleva a `#reservas`; sin errores de consola. Commit `c48c801`.
   - Pendiente: en móvil el chat ocupa la pantalla; tras "Ver más" a un ancla no se cierra solo. Commit `df63224`.
 
 ## Último trabajo (2026-11-19)
